@@ -1,26 +1,6 @@
 
 
 
-
-function boson_annihilation(;d::Int)
-	(d <= 1) && error("d must be larger than 1.")
-	a = zeros(Float64, d, d)
-	for i = 1:(d - 1)
-		a[i, i+1] = sqrt(i)
-	end
-	return a	
-end
-boson_creation(;d::Int) = boson_annihilation(d=d)'
-
-_to_tensor_map(m::AbstractMatrix) = TensorMap(m, ℂ^(size(m, 1)) ← ℂ^(size(m, 1)) )
-
-function boson_matrices(;d::Int)
-	a = boson_annihilation(d=d)
-	adag = boson_creation(d=d)
-	n = adag * a
-	return Dict("-"=>a, "+"=>adag, "n"=>n)
-end
-
 function spin_half_matrices()
 	s_SP = Array{Float64, 2}([0 0; 1 0])
 	s_SM = Array{Float64, 2}([0 1; 0 0])

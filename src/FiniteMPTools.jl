@@ -6,7 +6,7 @@ import TensorKit, LinearAlgebra
 
 # auxiliary
 export MPSTruncation, default_truncation, Coefficient, value, scalar_type, is_constant
-export boson_matrices, spin_half_matrices, spin_matrices, AbelianMatrix, abelian_matrix_from_dense
+export AbelianMatrix, abelian_matrix_from_dense
 
 # mps
 export AbstractMPS, FiniteMPS, iscanonical, canonicalize!, bond_dimension, bond_dimensions, distance2, distance, space_l, space_r, physical_spaces
@@ -16,7 +16,7 @@ export prodmps, randommps
 # export InfiniteMPS
 
 # mpo
-export AbstractMPO, FiniteMPO, prodmpo, deparallelise!, deparallelise, expectation, SiteOp
+export AbstractMPO, FiniteMPO, prodmpo, deparallelise!, deparallelise, expectation, SiteOp, ScalarSiteOp
 
 # mpohamiltonian
 export SchurMPOTensor, MPOHamiltonian, period, odim
@@ -31,20 +31,23 @@ export QuantumGate, QuantumCircuit, apply!, positions, fuse_gates
 export QTerm, QOperator, add!, isstrict, qterms
 
 # algorithms
-export trotter_propagator, infinite_trotter_propagator, DMRG1, DMRG2, DMRG1S, TDVP1, TDVP2, TDVP1S, leftsweep!, rightsweep!, sweep!
-export SubspaceExpansionScheme, CHExpansion
+export trotter_propagator, DMRG1, DMRG2, DMRG1S, TDVP1, TDVP2, TDVP1S, leftsweep!, rightsweep!, sweep!
+export SubspaceExpansionScheme, CHExpansion, OptimalExpansion
 export ExactFiniteMPS, exact_diagonalization, exact_timeevolution
 
+# utilities
+export boson_matrices, spin_half_matrices, spin_matrices
 
-#default settings
-module Defaults
-	const maxiter = 100
-	const tolgauge = 1e-14
-	const tol = 1e-12
-	const verbosity = 1
-	import KrylovKit: GMRES
-	const solver = GMRES(tol=1e-12, maxiter=100)
-end
+
+# #default settings
+# module Defaults
+# 	const maxiter = 100
+# 	const tolgauge = 1e-14
+# 	const tol = 1e-12
+# 	const verbosity = 1
+# 	import KrylovKit: GMRES
+# 	const solver = GMRES(tol=1e-12, maxiter=100)
+# end
 
 
 # auxiliary
@@ -54,8 +57,7 @@ include("auxiliary/distance.jl")
 include("auxiliary/coeff.jl")
 include("auxiliary/periodicarray.jl")
 
-include("auxiliary/smatrix.jl")
-include("auxiliary/abelian_particles.jl")
+include("auxiliary/abelianmatrix.jl")
 
 # mps
 include("mps/abstractdefs.jl")
@@ -120,4 +122,8 @@ include("algorithms/dmrgexcited.jl")
 include("algorithms/tdvp.jl")
 include("algorithms/exactdiag.jl")
 
+# utilities
+include("utilities/spin_siteops.jl")
+include("utilities/boson_siteops.jl")
+include("utilities/fermion_siteops.jl")
 end

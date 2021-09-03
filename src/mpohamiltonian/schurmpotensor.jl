@@ -16,8 +16,8 @@ function SchurMPOTensor{S, M, T}(data::Array{E, 2}) where {S<:EuclideanSpace, M 
 	m, n = size(data)
 	(m >= 1 && n >= 1 && m==n) || throw(DimensionMismatch())
 	new_data = Array{Union{M, T}, 2}(undef, m, n) 
-	omspaces = Vector{S}(undef, n)
-	imspaces = Vector{S}(undef, m)
+	omspaces = Vector{Union{Missing, S}}(missing, n)
+	imspaces = Vector{Union{Missing, S}}(missing, m)
 	pspace = nothing
 	for i in 1:m
 		for j in 1:n
@@ -26,18 +26,20 @@ function SchurMPOTensor{S, M, T}(data::Array{E, 2}) where {S<:EuclideanSpace, M 
 				sj = _add_legs(sj)
 			end
 
+			# println(typeof(sj))
+
  			if isa(sj, MPOTensor)
  				sj = convert(M, sj)
  				s_l = space(sj, 1)
  				s_r = space(sj, 3)'
  				s_p = space(sj, 2)
  				(s_p == space(sj, 4)') || throw(SpaceMismatch())
- 				if isassigned(imspaces, i)
+ 				if !ismissing(imspaces[i])
  					(imspaces[i] == s_l) || throw(SpaceMismatch())
  				else
  					imspaces[i] = s_l
  				end
- 				if isassigned(omspaces, j)
+ 				if !ismissing(omspaces[j])
  					(omspaces[j] == s_r) || throw(SpaceMismatch())
  				else
  					omspaces[j] = s_r
@@ -66,12 +68,12 @@ function SchurMPOTensor{S, M, T}(data::Array{E, 2}) where {S<:EuclideanSpace, M 
 		end
 	end
 	for i in 1:m
-		isassigned(imspaces, i) || throw(ArgumentError("imspace $i not assigned."))
+		ismissing(imspaces[i]) && throw(ArgumentError("imspace $i not assigned."))
 	end
 	for j in 1:n
-		isassigned(omspaces, j) || throw(ArgumentError("omspace $j not assigned."))
+		ismissing(omspaces[j]) && throw(ArgumentError("omspace $j not assigned."))
 	end
-	return SchurMPOTensor{S, M, T}(new_data, imspaces, omspaces, pspace)
+	return SchurMPOTensor{S, M, T}(new_data, [imspaces...], [omspaces...], pspace)
 end
 SchurMPOTensor(data::Array{Union{M, T}, 2}) where {M <:MPOTensor, T<:Number} = SchurMPOTensor{spacetype(M), M, T}(data)
 

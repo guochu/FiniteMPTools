@@ -36,12 +36,13 @@ function exact_diagonalization(h::Union{FiniteMPO, MPOHamiltonian}; sector::Sect
 
 	vals,vecs,info = eigsolve(x->ac_prime(x, h[middle_site], left, right), mps[middle_site], num, which, driver)
 
+	(info.converged >= num) || @warn "only $(info.converged) converged."
 	states = Vector{typeof(mps)}(undef, num)
 	for i in 1:num
 		states[i] = copy(mps)
 		states[i][middle_site] = vecs[i]
 	end
-	return vals, states, info
+	return vals[1:num], states
 end
 
 

@@ -6,14 +6,6 @@ function _is_positions_stricted_order(pos::Vector{Int})
 	return sort(pos) == pos
 end
 
-get_trivial_leg(m::AbstractTensorMap) = Tensor(ones,eltype(m),oneunit(space(m,1)))
-
-function _add_legs(m::AbstractTensorMap{S, 1, 1}) where {S <: EuclideanSpace}
-	util=get_trivial_leg(m)
-	@tensor m4[-1 -2; -3 -4] := util[-1] * m[-2, -4] * conj(util[-3])
-	return m4
-end
-
 
 struct QTerm{M <: MPOTensor} <: AbstractQuantumTerm 
 	positions::Vector{Int}
@@ -62,7 +54,7 @@ end
 
 QTerm(pos::Vector{Int}, m::Vector{<:AbstractTensorMap}; coeff::Union{Number, Function, Coefficient}=1.) = QTerm(pos, m, Coefficient(coeff))
 QTerm(pos::Tuple, m::Vector{<:AbstractTensorMap}; coeff::Union{Number, Function, Coefficient}=1.) = QTerm([pos...], m; coeff=coeff)
-QTerm(pos::Vector{Int}, m::Vector{<:SiteOp}; coeff::Union{Number, Function, Coefficient}=1.) = QTerm(pos, raw_data.(m); coeff=coeff)
+QTerm(pos::Vector{Int}, m::Vector{<:AbstractSiteOperator}; coeff::Union{Number, Function, Coefficient}=1.) = QTerm(pos, raw_data.(m); coeff=coeff)
 
 (x::QTerm)(t::Number) = QTerm(positions(x), op(x), coeff(x)(t))
 

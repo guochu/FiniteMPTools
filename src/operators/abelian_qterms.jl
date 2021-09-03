@@ -3,7 +3,7 @@
 
 QTerm(pos::Vector{Int}, m::Vector{<:AbstractMatrix}; coeff::Union{Number, Function, Coefficient}=1.) = QTerm(pos, _to_tensor_map.(m); coeff=coeff)
 
-function _convert_to_tensor_map(m::AbelianMatrix{S}, left::S) where {S <: GradedSpace}
+function _convert_to_tensor_map(m::AbelianMatrix{S}, left::S=oneunit(S)) where {S <: GradedSpace}
 	phy = space(m)
 	right_sectors = sectortype(S)[]
 	for (k, v) in raw_data(m)
