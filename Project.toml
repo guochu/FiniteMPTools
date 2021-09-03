@@ -1,4 +1,5 @@
 name = "FiniteMPTools"
+uuid = "daeb3e52-9d19-4ef5-aba1-6fab1661cdfb"
 authors = ["Guo Chu <guochu604b@gmail.com>"]
 version = "0.0.1"
 
