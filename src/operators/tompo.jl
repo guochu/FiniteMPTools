@@ -6,12 +6,13 @@ function prodmpo(physpaces::Vector{S}, m::QTerm) where {S <: EuclideanSpace}
 	return prodmpo(scalar_type(m), physpaces, positions(m), op(m)) * value(coeff(m))
 end
 
+prodmpo(physpaces::Vector{<: EuclideanSpace}, m::AdjointQTerm) = adjoint(prodmpo(physpaces, m.parent))
 
-function FiniteMPO(h::QOperator{S}; tol::Real=DeparalleliseTol) where {S <: EuclideanSpace}
+
+function FiniteMPO(h::QuantumOperator{S}; tol::Real=DeparalleliseTol) where {S <: EuclideanSpace}
 	physpaces = convert(Vector{S}, space(h))
 	local mpo
 	for m in qterms(h)
-		# println("positions*******************$(positions(m))")
 		if @isdefined mpo
 			mpo += prodmpo(physpaces, m)
 		else
@@ -25,3 +26,4 @@ function FiniteMPO(h::QOperator{S}; tol::Real=DeparalleliseTol) where {S <: Eucl
 	return mpo
 end
 
+FiniteMPO(h::SuperOperatorBase; kwargs...) = FiniteMPO(h.data; kwargs...)

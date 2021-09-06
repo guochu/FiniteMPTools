@@ -155,11 +155,12 @@ function _apply_impl(key::Tuple{Int, Int, Int, Int}, m::AbstractTensorMap{S, 4, 
 	return err
 end
 
-apply!(s::AbstractQuantumGate, mps::AbstractMPS; trunc::TruncationScheme=default_truncation(spacetype(mps))) = begin
+function apply!(s::AbstractQuantumGate, mps::AbstractMPS; trunc::TruncationScheme=default_truncation(spacetype(mps))) 
 	(length(positions(s)) <= 4) || throw(ArgumentError("only 4-body (or less) gates are currently allowed."))
 	svectors_uninitialized(mps) && canonicalize!(mps)
 	return [_apply_impl(positions(s), op(s), mps, trunc)]
 end 
+apply!(s::AbstractQuantumGate, psi::FiniteDensityOperatorMPS; kwargs...) = apply!(s, psi.data; kwargs...)
 
 function apply!(circuit::AbstractQuantumCircuit, mps::AbstractMPS; kwargs...)
 	errs = Float64[]
@@ -169,5 +170,6 @@ function apply!(circuit::AbstractQuantumCircuit, mps::AbstractMPS; kwargs...)
 	end
 	return errs
 end
+apply!(circuit::AbstractQuantumCircuit, psi::FiniteDensityOperatorMPS; kwargs...) = apply!(circuit, psi.data; kwargs...)
 
 

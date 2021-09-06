@@ -104,6 +104,6 @@ function ExactFiniteMPS(psi::FiniteMPS)
 	target_psi[middle_site] = c_proj(psi[middle_site], cleft, cright)
 	return ExactFiniteMPS([target_psi...], middle_site)
 end
-
+ExactFiniteMPS(psi::FiniteDensityOperatorMPS) = ExactFiniteMPS(psi.data)
 
 

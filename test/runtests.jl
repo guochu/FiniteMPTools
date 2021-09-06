@@ -1,9 +1,9 @@
-
-# push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
+push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
 
 using Test
 using TensorKit
 using FiniteMPTools
+using LinearAlgebra: norm, tr
 
 # function hubbard_chain(L, J, U, p)
 # 	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
@@ -21,7 +21,7 @@ using FiniteMPTools
 # 	end
 
 # 	observers = [QTerm(i=>nn) for i in 1:L]
-# 	return QOperator([terms...]), observers
+# 	return QuantumOperator([terms...]), observers
 # end
 
 function long_range_hubbard_chain_mpo(L, J, U, alpha, p)
@@ -47,7 +47,7 @@ function long_range_hubbard_chain_mpo(L, J, U, alpha, p)
 	end
 
 	observers = [QTerm(i=>nn) for i in 1:L]
-	return FiniteMPO(QOperator([terms...])), observers
+	return FiniteMPO(QuantumOperator([terms...])), observers
 end
 
 function long_range_hubbard_chain_mpo_ham(L, J, U, alpha, p)
@@ -104,6 +104,7 @@ println("-----------test mpo hamiltonain-----------------")
 	end
 end
 
+
 function hubbard_ladder(L, J1, J2, U, p)
 	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
 
@@ -126,7 +127,7 @@ function hubbard_ladder(L, J1, J2, U, p)
 	end
 
 	observers = [QTerm(i=>nn) for i in 1:L]
-	return QOperator([terms...]), observers
+	return QuantumOperator([terms...]), observers
 end
 
 function initial_state_u1_su2(L)
@@ -391,7 +392,141 @@ function test_tebd(L)
 	return maximum([maximum(abs.(all_obs[i] - all_obs[1])) for i in 1:length(all_obs)])
 end
 
+function _prepare_rand_state(state; D)
+	rand_state = randommps(ComplexF64, physical_spaces(state), sector=sector(state), D=D)
+	canonicalize!(rand_state, normalize=true)
+	return rand_state
+end
+
+function test_expectation_values_1(L)
+	J = 1.
+	J2 = 1.2
+	U = 0.8
+
+	ham_vals = Float64[]
+	# u1 u1
+	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_u1_u1())
+	state, sect = initial_state_u1_u1(L)
+	canonicalize!(state, normalize=true)
+	mpo = FiniteMPO(ham)
+
+	push!(ham_vals, real(expectation(ham, state, iscanonical=true)))
+	push!(ham_vals, real(expectation(ham, state, iscanonical=false)))
+	push!(ham_vals, real(expectation(mpo, state)) )
+
+	rho = DensityOperator(state, fuser=⊗)
+	push!(ham_vals, real(tr( mpo * FiniteMPO(rho))) )
+	push!(ham_vals, real(expectation(mpo ⊗ conj(id(mpo)) , rho) ))
+
+	rho = DensityOperator(state, fuser=⊠)
+	push!(ham_vals, real(expectation(mpo ⊠ conj(id(mpo)) , rho) ))
+
+	# u1 su2
+	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+	state, sect = initial_state_u1_su2(L)
+	canonicalize!(state, normalize=true)
+	mpo = FiniteMPO(ham)
+
+	push!(ham_vals, real(expectation(ham, state, iscanonical=true)))
+	push!(ham_vals, real(expectation(ham, state, iscanonical=false)))
+	push!(ham_vals, real(expectation(mpo, state)) )
+
+	rho = DensityOperator(state, fuser=⊗)
+	push!(ham_vals, real(tr( mpo * FiniteMPO(rho))) )
+	push!(ham_vals, real(expectation(mpo ⊗ conj(id(mpo)) , rho) ))
+
+	rho = DensityOperator(state, fuser=⊠)
+	push!(ham_vals, real(expectation(mpo ⊠ conj(id(mpo)), rho) ))
+
+
+	# dense
+	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_dense())
+	state = initial_state_dense(L)
+	canonicalize!(state, normalize=true)
+	mpo = FiniteMPO(ham)
+
+	push!(ham_vals, real(expectation(ham, state, iscanonical=true)))
+	push!(ham_vals, real(expectation(ham, state, iscanonical=false)))
+	push!(ham_vals, real(expectation(mpo, state)) )
+
+	rho = DensityOperator(state, fuser=⊗)
+	push!(ham_vals, real(tr( mpo * FiniteMPO(rho))) )
+	push!(ham_vals, real(expectation(mpo ⊗ conj(id(mpo)) , rho) ))
+
+	rho = DensityOperator(state, fuser=⊠)
+	push!(ham_vals, real(expectation(mpo ⊠ conj(id(mpo)) , rho) ))
+
+	return maximum(abs.(ham_vals .- ham_vals[1]))
+end
+
+function test_expectation_values_2(L)
+	J = 1.
+	J2 = 1.2
+	U = 0.8
+
+	ham_vals = Float64[]
+	Errs = Float64[]
+	# u1 u1
+	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_u1_u1())
+	state, sect = initial_state_u1_u1(L)
+	rand_state = _prepare_rand_state(state, D=10)
+	mpo = FiniteMPO(ham)
+
+	push!(ham_vals, real(expectation(ham, rand_state, iscanonical=true)) )
+	push!(ham_vals, real(expectation(ham, rand_state, iscanonical=false)) )
+
+	for fuser in [⊗, ⊠]
+		rho = DensityOperator(rand_state, fuser=fuser)
+		push!(ham_vals, real(expectation(fuser(mpo, conj(id(mpo)) ), rho)) )
+	end
+	push!(Errs, maximum(abs.(ham_vals .- ham_vals[1])) )
+
+	# u1 su2
+	ham_vals = Float64[]
+	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+	state, sect = initial_state_u1_su2(L)
+	rand_state = _prepare_rand_state(state, D=10)
+	mpo = FiniteMPO(ham)
+
+	push!(ham_vals, real(expectation(ham, rand_state, iscanonical=true)) )
+	push!(ham_vals, real(expectation(ham, rand_state, iscanonical=false)) )
+
+	for fuser in [⊗, ⊠]
+		rho = DensityOperator(rand_state, fuser=fuser)
+		push!(ham_vals, real(expectation(fuser(mpo, conj(id(mpo))), rho)) )
+	end
+	push!(Errs, maximum(abs.(ham_vals .- ham_vals[1])) )
+
+
+	# dense
+	ham_vals = Float64[]
+	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_dense())
+	state = initial_state_dense(L)
+	rand_state = _prepare_rand_state(state, D=10)
+	mpo = FiniteMPO(ham)
+
+	push!(ham_vals, real(expectation(ham, rand_state, iscanonical=true)) )
+	push!(ham_vals, real(expectation(ham, rand_state, iscanonical=false)) )
+
+	for fuser in [⊗, ⊠]
+		rho = DensityOperator(rand_state, fuser=fuser)
+		push!(ham_vals, real(expectation(fuser(mpo, conj(id(mpo)) ), rho)) )
+	end
+	push!(Errs, maximum(abs.(ham_vals .- ham_vals[1])) )	
+	
+	return maximum(Errs)
+end
+
 println("----------------test algorithms--------------------")
+
+@testset "expectation values" begin
+	for L in [5, 6]
+		@test test_expectation_values_1(L) < 1.0e-8
+		@test test_expectation_values_2(L) < 1.0e-8
+	end
+end
+
+
 @testset "ground state dmrg algorithms" begin
 	for L in [5, 6]
 		@test test_ground_state(L) < 1.0e-8

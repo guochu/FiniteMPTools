@@ -85,6 +85,7 @@ Base.:/(s::QTerm, m::Number) = QTerm(positions(s), op(s), coeff(s) / m)
 Base.:+(s::QTerm) = s
 Base.:-(s::QTerm) = QTerm(positions(s), op(s), -coeff(s))
 
+
 TensorKit.spacetype(::Type{QTerm{M}}) where {M <: MPOTensor} = spacetype(M)
 TensorKit.spacetype(x::QTerm) = spacetype(typeof(x))
 
@@ -106,10 +107,6 @@ end
 
 interaction_range(x::QTerm) = _interaction_range(positions(x))
 
-function Base.adjoint(m::QTerm)
-	isstrict(m) || throw(ArgumentError("adjoint of non-strict QTerm is not defined."))
-	return QTerm(positions(m), mpo_tensor_adjoint.(op(m)), coeff(m))
-end 
 
 shift(m::QTerm, i::Int) = QTerm(positions(m) .+ i, op(m), coeff(m))
 
@@ -153,5 +150,80 @@ function _join_ops(m::QTerm)
 	isstrict(m) || error(ArgumentError("only number conserving term allowed."))
 	return _join(op(m)) * value(coeff(m))
 end
+
+
+function _coerce_qterms(x::QTerm, y::QTerm)
+	T = promote_type(scalar_type(x), scalar_type(y))
+    opx = op(x)
+    opy = op(y)
+    pos = positions(x)
+    vacuum = oneunit(spacetype(x))
+    if !(positions(x) == positions(y))
+    	new_pos = sort([Set(vcat(positions(x), positions(y)))...])
+    	new_opx = []
+    	new_opy = []
+    	for pos in new_pos
+    		pos_x = findfirst(a->a==pos, positions(x))
+    		pos_y = findfirst(a->a==pos, positions(x))
+    		if isnothing(pos_x) && !(isnothing(pos_y))
+    			push!(new_opx, id(Matrix{T}, vacuum ⊗ space(opy[pos_y], 2) ))
+    			push!(new_opy, opy[pos_y])
+    		elseif !(isnothing(pos_x)) && isnothing(pos_y)
+    			push!(new_opx, opx[pos_x])
+    			push!(new_opy, id(Matrix{T}, vacuum ⊗ space(opx[pos_x], 2)))
+    		elseif !(isnothing(pos_x)) && !(isnothing(pos_y))
+    			push!(new_opx, opx[pos_x])
+    			push!(new_opy, opy[pos_y])
+    		else
+    			throw(ArgumentError("why here?"))
+    		end
+    	end
+    	opx = [new_opx...]
+    	opy = [new_opy...]
+    	pos = new_pos
+    end
+    return pos, opx, opy
+end
+
+
+# Qterm adjoint
+struct AdjointQTerm{M <: MPOTensor} <: AbstractQuantumTerm 
+	parent::QTerm{M}
+end
+
+Base.adjoint(m::QTerm) = AdjointQTerm(m)
+Base.adjoint(m::AdjointQTerm) = m.parent
+positions(m::AdjointQTerm) = positions(m.parent)
+coeff(m::AdjointQTerm) = conj(coeff(m.parent))
+scalar_type(m::AdjointQTerm) = scalar_type(m.parent)
+
+function QTerm(m::AdjointQTerm)
+	isstrict(m.parent) || throw(ArgumentError("can not convert non-strict QTerm adjoint into a QTerm."))
+	QTerm(positions(m.parent), mpo_tensor_adjoint.(op(m.parent)), conj(coeff(m.parent)) )
+end 
+
+
+"""
+	Base.:*(x::QTerm, y::AdjointQTerm)
+	multiplication between two QTerms
+"""
+function Base.:*(x::QTerm, y::AdjointQTerm)
+	pos, opx, opy = _coerce_qterms(x, y.parent)
+	v = _mult_n_a(opx, opy, oneunit(spacetype(x))')
+	return QTerm(pos, v, coeff=coeff(x)*coeff(y))
+end
+function Base.:*(x::AdjointQTerm, y::QTerm)
+	pos, opx, opy = _coerce_qterms(x.parent, y)
+	v = _mult_a_n(opx, opy, oneunit(spacetype(x))')
+	return QTerm(pos, v, coeff=coeff(x)*coeff(y))
+end
+function Base.:*(x::QTerm, y::QTerm)
+	pos, opx, opy = _coerce_qterms(x, y.parent)
+	v = _mult_n_n(opx, opy)
+	return QTerm(pos, v, coeff=coeff(x)*coeff(y))
+end
+Base.:*(x::AdjointQTerm, y::AdjointQTerm) = adjoint(y.parent * x.parent)
+
+
 
 

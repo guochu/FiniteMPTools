@@ -1,24 +1,24 @@
 
 abstract type AbstractQuantumOperator end
 
-struct QOperator{S <: EuclideanSpace, M<:MPOTensor} <: AbstractQuantumOperator
+struct QuantumOperator{S <: EuclideanSpace, M<:MPOTensor} <: AbstractQuantumOperator
 	physpaces::Vector{Union{S, Missing}}
 	data::Dict{Tuple{Int, Vararg{Int, N} where N}, Vector{Tuple{Vector{M}, AbstractCoefficient}}}
 end
-QOperator{S, M}() where {S <: EuclideanSpace, M <: MPOTensor} = QOperator{S, M}(Vector{Vector{Union{S, Missing}}}(), 
+QuantumOperator{S, M}() where {S <: EuclideanSpace, M <: MPOTensor} = QuantumOperator{S, M}(Vector{Vector{Union{S, Missing}}}(), 
 	Dict{Tuple{Int, Vararg{Int, N} where N}, Vector{Tuple{Vector{M}, AbstractCoefficient}}}())
-QOperator{S, M}(physpaces::Vector{Union{S, Missing}}) where {S <: EuclideanSpace, M <: MPOTensor} = QOperator{S, M}(
+QuantumOperator{S, M}(physpaces::Vector{Union{S, Missing}}) where {S <: EuclideanSpace, M <: MPOTensor} = QuantumOperator{S, M}(
 	physpaces, Dict{Tuple{Int, Vararg{Int, N} where N}, Vector{Tuple{Vector{M}, AbstractCoefficient}}}())
 
-function QOperator{S, M}(ms::Vector{<:QTerm}) where {S <: EuclideanSpace, M <: MPOTensor}
-	r = QOperator{S, M}()
+function QuantumOperator{S, M}(ms::Vector{<:AbstractQuantumTerm}) where {S <: EuclideanSpace, M <: MPOTensor}
+	r = QuantumOperator{S, M}()
 	for item in ms
 		add!(r, item)
 	end
 	return r
 end
 
-function QOperator(ms::Vector{<:QTerm})
+function QuantumOperator(ms::Vector{<:AbstractQuantumTerm})
 	isempty(ms) && throw(ArgumentError("no terms."))
 	S = spacetype(ms[1])
 	T = Float64
@@ -26,33 +26,28 @@ function QOperator(ms::Vector{<:QTerm})
 		T = promote_type(T, scalar_type(item))
 	end
 	M = tensormaptype(S, 2, 2, T)
-	return QOperator{S, M}(ms)
+	return QuantumOperator{S, M}(ms)
 end
 
-scalar_type(::Type{QOperator{S, M}}) where {S <: EuclideanSpace, M <: MPOTensor} = scalar_type(M)
-scalar_type(x::QOperator) = scalar_type(typeof(x))
-
-# QOperator{S}(physpaces::Vector) where {S <: EuclideanSpace} = QOperator{S, TensorMap{S, 2, 2}}(physpaces)
-# QOperator{S}() where {S <: EuclideanSpace} = QOperator{S, TensorMap{S, 2, 2}}()
-# QOperator{S,T}() where {S <: EuclideanSpace, T <: Number} = QOperator{S, tensormaptype(S, 2, 2, T)}()
-# QOperator(physpaces::Vector{Union{S, Missing}}) where {S <: EuclideanSpace} = QOperator{S}(physpaces)
+scalar_type(::Type{QuantumOperator{S, M}}) where {S <: EuclideanSpace, M <: MPOTensor} = scalar_type(M)
+scalar_type(x::QuantumOperator) = scalar_type(typeof(x))
 
 
-TensorKit.spacetype(::Type{QOperator{S, M}}) where {S, M} = S
-TensorKit.spacetype(x::QOperator) = spacetype(typeof(x))
-TensorKit.space(x::QOperator) = x.physpaces
-TensorKit.space(x::QOperator, i::Int) = x.physpaces[i]
+TensorKit.spacetype(::Type{QuantumOperator{S, M}}) where {S, M} = S
+TensorKit.spacetype(x::QuantumOperator) = spacetype(typeof(x))
+TensorKit.space(x::QuantumOperator) = x.physpaces
+TensorKit.space(x::QuantumOperator, i::Int) = x.physpaces[i]
 
-raw_data(x::QOperator) = x.data
-Base.copy(x::QOperator) = QOperator(copy(space(x)), copy(raw_data(x)))
+raw_data(x::QuantumOperator) = x.data
+Base.copy(x::QuantumOperator) = QuantumOperator(copy(space(x)), copy(raw_data(x)))
 
-Base.empty!(s::QOperator) = empty!(raw_data(s))
-Base.isempty(s::QOperator) = isempty(raw_data(s))
-Base.keys(s::QOperator) = keys(raw_data(s))
-Base.similar(s::QOperator{S, M}) where {S <: EuclideanSpace, M <: MPOTensor} = QOperator{S, M}()
-Base.length(x::QOperator) = length(space(x))
+Base.empty!(s::QuantumOperator) = empty!(raw_data(s))
+Base.isempty(s::QuantumOperator) = isempty(raw_data(s))
+Base.keys(s::QuantumOperator) = keys(raw_data(s))
+Base.similar(s::QuantumOperator{S, M}) where {S <: EuclideanSpace, M <: MPOTensor} = QuantumOperator{S, M}()
+Base.length(x::QuantumOperator) = length(space(x))
 
-function is_constant(x::QOperator)
+function is_constant(x::QuantumOperator)
 	for (k, v) in raw_data(x)
 		for (m, c) in v
 			is_constant(c) || return false
@@ -61,9 +56,9 @@ function is_constant(x::QOperator)
 	return true
 end
 
-interaction_range(x::QOperator) = maximum([_interaction_range(k) for k in keys(x)])
+interaction_range(x::QuantumOperator) = maximum([_interaction_range(k) for k in keys(x)])
 
-function (x::QOperator)(t::Number)
+function (x::QuantumOperator)(t::Number)
 	r = typeof(raw_data(x))()
 	for (k, v) in raw_data(x)
 		vr =  typeof(v)()
@@ -72,10 +67,10 @@ function (x::QOperator)(t::Number)
 		end
 		r[k] = vr
 	end
-	return QOperator(copy(space(x)), r)
+	return QuantumOperator(copy(space(x)), r)
 end 
 
-function Base.:*(x::QOperator, y::Number) 
+function Base.:*(x::QuantumOperator, y::Number) 
 	r = typeof(raw_data(x))()
 	for (k, v) in raw_data(x)
 		vr =  typeof(v)()
@@ -84,13 +79,13 @@ function Base.:*(x::QOperator, y::Number)
 		end
 		r[k] = vr
 	end
-	return QOperator(copy(space(x)), r)
+	return QuantumOperator(copy(space(x)), r)
 end
 
-Base.:*(y::Number, x::QOperator) = x * y
-Base.:/(x::QOperator, y::Number) = x * (1 / y)
-Base.:+(x::QOperator) = x
-Base.:-(x::QOperator) = x * (-1)
+Base.:*(y::Number, x::QuantumOperator) = x * y
+Base.:/(x::QuantumOperator, y::Number) = x * (1 / y)
+Base.:+(x::QuantumOperator) = x
+Base.:-(x::QuantumOperator) = x * (-1)
 
 function _merge_spaces(x, y)
 	L = max(length(x), length(y))
@@ -112,29 +107,29 @@ function _merge_spaces(x, y)
 	return r
 end
 
-function Base.:+(x::M, y::M) where {M <: QOperator}
-	z = QOperator(_merge_spaces(space(x), space(y)), copy(raw_data(x)))
+function Base.:+(x::M, y::M) where {M <: QuantumOperator}
+	z = QuantumOperator(_merge_spaces(space(x), space(y)), copy(raw_data(x)))
 	for (k, v) in raw_data(y)
 	   	tmp = get!(raw_data(z), k, typeof(v)())
 	   	append!(tmp, v)
 	end	
 	return z
 end
-Base.:-(x::M, y::M) where {M <: QOperator} = x + (-y)
+Base.:-(x::M, y::M) where {M <: QuantumOperator} = x + (-y)
 
-function shift(x::QOperator, n::Int)
+function shift(x::QuantumOperator, n::Int)
 	s = similar(space(x), length(x) + n)
 	s[1:n] .= missing
 	s[(n+1):end] .= space(x)
-	return QOperator(s, typeof(raw_data(x))( k .+ n =>v for (k, v) in raw_data(x)) )
+	return QuantumOperator(s, typeof(raw_data(x))( k .+ n =>v for (k, v) in raw_data(x)) )
 end 
 
 
 """
-	add!(x::QOperator{M}, m::QTerm{M}) where {M <: MPOTensor}
+	add!(x::QuantumOperator{M}, m::QTerm{M}) where {M <: MPOTensor}
 	adding a new term into the quantum operator
 """
-function add!(x::QOperator, m::QTerm) 
+function add!(x::QuantumOperator, m::QTerm) 
 	(spacetype(x) == spacetype(m)) || throw(SpaceMismatch())
 	is_zero(m) && return
 	pos = Tuple(positions(m))
@@ -157,8 +152,10 @@ function add!(x::QOperator, m::QTerm)
 	push!(v, (op(m), coeff(m)))
 	return x
 end  
+# m has to be strict
+add!(x::QuantumOperator, m::AdjointQTerm) = add!(x, QTerm(m))
 
-function isstrict(x::QOperator)
+function isstrict(x::QuantumOperator)
 	for (k, v) in raw_data(x)
 		for (m, c) in v
 			isstrict(QTerm(k, m, coeff=c)) || return false
@@ -167,7 +164,7 @@ function isstrict(x::QOperator)
 	return true
 end
 
-function qterms(x::QOperator) 
+function qterms(x::QuantumOperator) 
 	r = []
 	for (k, v) in raw_data(x)
 		for (m, c) in v
@@ -180,7 +177,7 @@ function qterms(x::QOperator)
 	return r
 end
 
-function qterms(x::QOperator, k::Tuple)
+function qterms(x::QuantumOperator, k::Tuple)
 	r = []
 	v = get(raw_data(x), k, nothing)
 	if isnothing(v)
@@ -196,7 +193,7 @@ function qterms(x::QOperator, k::Tuple)
 	return r
 end
 
-function _expm(x::QOperator{S}, dt::Number) where {S <: EuclideanSpace}
+function _expm(x::QuantumOperator{S}, dt::Number) where {S <: EuclideanSpace}
 	is_constant(x) || throw(ArgumentError("input operator should be constant."))
 	r = QuantumCircuit{S}()
 	for k in keys(x)
@@ -258,7 +255,7 @@ function _absorb_one_bodies(physpaces::Vector, h::Dict)
 	return r
 end
 
-function absorb_one_bodies(h::QOperator) 
+function absorb_one_bodies(h::QuantumOperator) 
 	r = _absorb_one_bodies(space(h), raw_data(h))
-	return QOperator(copy(space(h)), r)
+	return QuantumOperator(copy(space(h)), r)
 end

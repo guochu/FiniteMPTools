@@ -53,3 +53,20 @@ function updateleft(hold::AbstractTensorMap{S, 1, 2}, psiAj::MPSTensor{S}, hj::N
 	@tensor hnew[-1; -2 -3] := hj * hold[1,-2,2] * psiBj[2,3,-3] * conj(psiAj[1,3,-1])
 	return hnew
 end
+
+function updatetraceleft(hold::AbstractTensorMap{S, 1, 0}, hj::MPOTensor{S}) where {S <: EuclideanSpace}
+	@tensor hnew[-1] := hold[1] * hj[1,2,-1,2]
+	return hnew
+end
+
+function updatetraceleft(hold::AbstractTensorMap{S, 2, 0}, hj::MPOTensor{S}, psij::MPSTensor{S}, fuser::MPSTensor{S}) where {S <: EuclideanSpace}
+	@tensor hnew[-1 -2] := hold[1, 2] * hj[1, 3, -1, 4] * psij[2, 4, -2] * fuser[5, 5, 3]
+	return hnew
+end
+
+function updatetraceleft(hold::AbstractTensorMap{S, 2, 0}, hj::Nothing, psij::MPSTensor{S}, fuser::MPSTensor{S}) where {S <: EuclideanSpace}
+	@tensor hnew[-1 -2] := hold[-1, 2] * psij[2, 3, -2] * fuser[5, 5, 3]
+	return hnew
+end
+
+

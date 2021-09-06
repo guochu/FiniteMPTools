@@ -6,9 +6,7 @@ function FiniteMPS(f, ::Type{T}, physpaces::Vector{S}, virtualpaces::Vector{S}) 
 	(length(virtualpaces) == L+1) || throw(DimensionMismatch())
 	# (dim(virtualpaces[end]) == 1) || throw(DimensionMismatch())
 	(virtualpaces[1] == oneunit(S)) || throw(DimensionMismatch())
-	for item in virtualpaces
-		(dim(item) == 0) && @warn "auxiliary space is empty."
-	end
+	any([dim(item)==0 for item in virtualpaces]) &&  @warn "auxiliary space is empty."
 	mpstensors = [TensorMap(f, T, virtualpaces[i] ⊗ physpaces[i] ← virtualpaces[i+1]) for i in 1:L]
 	return FiniteMPS(mpstensors)
 end
@@ -22,7 +20,7 @@ function FiniteMPS(f, ::Type{T}, physpaces::Vector{S}, maxvirtualspace::S; left:
 	end
 	virtualpaces[L+1] = right
 	for i in L:-1:2
-		virtualpaces[i] = infimum(virtualpaces[i], fuse(flip(physpaces[i]), virtualpaces[i+1]))
+		virtualpaces[i] = infimum(virtualpaces[i], fuse(physpaces[i]', virtualpaces[i+1]))
 	end
 	return FiniteMPS(f, T, physpaces, virtualpaces)
 end
@@ -60,6 +58,7 @@ prodmps(physpace::S, physectors::Vector; kwargs...) where {T <: Number, S <: Gra
 
 function randommps(::Type{T}, physpaces::Vector{S}; sector::Sector, D::Int) where {T <: Number, S <: EuclideanSpace}
 	virtualpaces = max_virtual_spaces(physpaces, sector)
+	any([dim(item)==0 for item in virtualpaces]) &&  @warn "auxiliary space is empty."
 	L = length(physpaces)
 	mpstensors = Vector{Any}(undef, L)
 	trunc = truncdim(D)

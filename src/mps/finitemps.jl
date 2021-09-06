@@ -62,6 +62,8 @@ function Base.copy(psi::FiniteMPS)
 	end
 end
 
+sector(psi::FiniteMPS) = first(sectors(space_r(psi)'))
+
 function _svectors_uninitialized(x)
 	isempty(x) && return true
 	s = raw_singular_matrices(x)
@@ -209,7 +211,7 @@ function max_virtual_spaces(physpaces::Vector{S}, sector::Sector) where {S <: Eu
 	end
 	virtualpaces[L+1] = right
 	for i in L:-1:2
-		virtualpaces[i] = infimum(virtualpaces[i], fuse(flip(physpaces[i]), virtualpaces[i+1]))
+		virtualpaces[i] = infimum(virtualpaces[i], fuse(physpaces[i]', virtualpaces[i+1]))
 	end
 	return virtualpaces
 end
@@ -226,7 +228,7 @@ function max_bond_dimensions(physpaces::Vector{S}, sector::Sector) where {S <: E
 	end
 	Ds[end] = 1
 	for i in L:-1:1
-		right = fuse(flip(physpaces[i]), right)
+		right = fuse(physpaces[i]', right)
 		Ds[i] = min(Ds[i], dim(right))
 	end
 	return Ds

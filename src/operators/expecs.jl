@@ -1,5 +1,5 @@
 
-
+# from right to left
 function _compute_overlap_env(psiA::FiniteMPS, psiB::FiniteMPS)
 	(length(psiA) == length(psiB)) || throw(DimensionMismatch())
 	(space_r(psiA) == space_r(psiB)) || throw(SpaceMismatch())
@@ -12,6 +12,9 @@ function _compute_overlap_env(psiA::FiniteMPS, psiB::FiniteMPS)
 	end
 	return cstorage
 end
+
+# from left to right
+_compute_overlap_env(psi::FiniteDensityOperatorMPS) = _compute_overlap_env(psi.I, psi.data)
 
 
 """
@@ -71,7 +74,7 @@ end
 expectation(psiA::FiniteMPS, m::QTerm, psiB::FiniteMPS) = _expectation(psiA, m, psiB, _compute_overlap_env(psiA, psiB))
 expectation(m::QTerm, psi::FiniteMPS; iscanonical::Bool=false) = iscanonical ? _expectation(m, psi) : expectation(psi, m, psi)
 
-function expectation(psiA::FiniteMPS, h::QOperator, psiB::FiniteMPS)
+function expectation(psiA::FiniteMPS, h::QuantumOperator, psiB::FiniteMPS)
 	(length(h) <= length(psiA)) || throw(DimensionMismatch())
 	cstorage = _compute_overlap_env(psiA, psiB)
 	r = 0.
@@ -80,7 +83,7 @@ function expectation(psiA::FiniteMPS, h::QOperator, psiB::FiniteMPS)
 	end
 	return r
 end
-function expectation(h::QOperator, psi::FiniteMPS; iscanonical::Bool=false)
+function expectation(h::QuantumOperator, psi::FiniteMPS; iscanonical::Bool=false)
 	if iscanonical
 		r = 0.
 		for m in qterms(h)
@@ -92,4 +95,18 @@ function expectation(h::QOperator, psi::FiniteMPS; iscanonical::Bool=false)
 	end
 end
 
+# density operator
+"""
+	expectation(m::QTerm, psi::FiniteDensityOperatorMPS) 
+	⟨I|h|ρ⟩
+"""
+expectation(m::QTerm, psi::FiniteDensityOperatorMPS) = _expectation(psi.I, m, psi.data, _compute_overlap_env(psi))
 
+function expectation(m::QuantumOperator, psi::FiniteDensityOperatorMPS)
+	cstorage = _compute_overlap_env(psi)
+	r = 0.
+	for m in qterms(h)
+		r += _expectation(psi.I, m, psi.data, cstorage)
+	end
+	return r
+end
