@@ -130,4 +130,14 @@ include("algorithms/exactdiag.jl")
 include("utilities/spin_siteops.jl")
 include("utilities/boson_siteops.jl")
 include("utilities/fermion_siteops.jl")
+
+
+# function precompile_util()
+# 	p1 = spinal_fermion_site_ops_u1_su2()
+# 	p2 = spinal_fermion_site_ops_u1_u1()
+# 	p3 = spinal_fermion_site_ops_dense()
+# end
+
+# precompile_util()
+
 end
