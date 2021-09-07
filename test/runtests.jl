@@ -170,11 +170,8 @@ function initial_state_dense(L)
 	return prodmps(ComplexF64, [4 for i in 1:L], init_state)
 end 
 
-function do_dmrg(dmrg, alg, n)
-	Evals = Float64[]
-	for i in 1:n
-		append!(Evals, sweep!(dmrg, alg))
-	end	
+function do_dmrg(dmrg, alg)
+	Evals, delta = compute!(dmrg, alg)
 	return Evals[end]
 end
 
@@ -184,13 +181,12 @@ function test_ground_state(L)
 	U = 1.37
 
 	all_Es = Float64[]
-	dmrg_sweeps = 5
 	# hubbard chain u1 u1 dmrg
 	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_u1_u1())
 	mpo = FiniteMPO(ham)
 	state, sector = initial_state_u1_u1(L)
-	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG2(), dmrg_sweeps) )
-	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG1S(), dmrg_sweeps) )
+	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG2()) )
+	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG1S()) )
 
 	E, _st = exact_diagonalization(mpo, sector=sector, num=1, ishermitian=true)
 	push!(all_Es, E[1])
@@ -199,8 +195,8 @@ function test_ground_state(L)
 	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
 	mpo = FiniteMPO(ham)
 	state, sector = initial_state_u1_su2(L)
-	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG2(), dmrg_sweeps) )
-	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG1S(), dmrg_sweeps) )
+	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG2()) )
+	push!(all_Es, do_dmrg(environments(mpo, copy(state)), DMRG1S()) )
 
 	E, _st = exact_diagonalization(mpo, sector=sector, num=1, ishermitian=true)
 	push!(all_Es, E[1])
@@ -215,16 +211,15 @@ function test_ground_state_2(L)
 	alpha = 0.45
 
 	all_Es = Float64[]
-	dmrg_sweeps = 5
 	# hubbard chain u1 u1 dmrg
 
 	mpo1, observers =long_range_hubbard_chain_mpo(L, J, U, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_u1())
 	mpo2, observers = long_range_hubbard_chain_mpo_ham(L, J, U, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_u1())
 
 	state, sector = initial_state_u1_u1(L)
-	push!(all_Es, do_dmrg(environments(mpo1, copy(state)), DMRG2(), dmrg_sweeps) )
-	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG2(), dmrg_sweeps) )
-	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG1S(), dmrg_sweeps) )
+	push!(all_Es, do_dmrg(environments(mpo1, copy(state)), DMRG2()) )
+	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG2()) )
+	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG1S()) )
 
 	E, _st = exact_diagonalization(mpo1, sector=sector, num=1, ishermitian=true)
 	push!(all_Es, E[1])
@@ -237,9 +232,9 @@ function test_ground_state_2(L)
 	mpo2, observers = long_range_hubbard_chain_mpo_ham(L, J, U, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
 	state, sector = initial_state_u1_su2(L)
 
-	push!(all_Es, do_dmrg(environments(mpo1, copy(state)), DMRG2(), dmrg_sweeps) )
-	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG2(), dmrg_sweeps) )
-	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG1S(), dmrg_sweeps) )
+	push!(all_Es, do_dmrg(environments(mpo1, copy(state)), DMRG2()) )
+	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG2()) )
+	push!(all_Es, do_dmrg(environments(mpo2, copy(state)), DMRG1S()) )
 
 	E, _st = exact_diagonalization(mpo1, sector=sector, num=1, ishermitian=true)
 	push!(all_Es, E[1])
@@ -255,7 +250,7 @@ function test_excitations(L)
 	J2 = 1.1
 	U = 1.4
 
-	dmrg_sweeps = 5
+
 	# hubbard chain u1 u1 dmrg
 	U1_Es = Float64[]
 	ham, observers = hubbard_ladder(L, J, J2, U, FiniteMPTools.spinal_fermion_site_ops_u1_u1())
@@ -263,11 +258,11 @@ function test_excitations(L)
 
 	state, sector = initial_state_u1_u1(L)
 	dmrg = environments(mpo, copy(state))
-	do_dmrg(dmrg, DMRG2(), dmrg_sweeps)
+	do_dmrg(dmrg, DMRG2())
 	gs_state = dmrg.state
 
-	push!(U1_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG2(), dmrg_sweeps) )
-	push!(U1_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG1S(), dmrg_sweeps) )
+	push!(U1_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG2()) )
+	push!(U1_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG1S()) )
 
 	E, _st = exact_diagonalization(mpo, sector=sector, num=2, ishermitian=true)
 	push!(U1_Es, E[2])
@@ -279,11 +274,11 @@ function test_excitations(L)
 
 	state, sector = initial_state_u1_su2(L)
 	dmrg = environments(mpo, copy(state))
-	do_dmrg(dmrg, DMRG2(), dmrg_sweeps)
+	do_dmrg(dmrg, DMRG2())
 	gs_state = dmrg.state
 
-	push!(SU2_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG2(), dmrg_sweeps) )
-	push!(SU2_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG1S(), dmrg_sweeps) )
+	push!(SU2_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG2()) )
+	push!(SU2_Es, do_dmrg(environments(mpo, copy(state), [gs_state]), DMRG1S()) )
 
 	E, _st = exact_diagonalization(mpo, sector=sector, num=2, ishermitian=true)
 	push!(SU2_Es, E[2])

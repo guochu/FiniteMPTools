@@ -1,7 +1,7 @@
 module FiniteMPTools
 
 using Logging: @warn
-using KrylovKit, TensorKit
+using Parameters, KrylovKit, TensorKit
 using Statistics
 import TensorKit, LinearAlgebra
 
@@ -32,7 +32,7 @@ export QuantumGate, QuantumCircuit, apply!, positions, fuse_gates
 export QTerm, QuantumOperator, add!, isstrict, qterms, superoperator, add_unitary!, add_dissipation!
 
 # algorithms
-export trotter_propagator, DMRG1, DMRG2, DMRG1S, TDVP1, TDVP2, TDVP1S, leftsweep!, rightsweep!, sweep!, compute!
+export trotter_propagator, DMRG1, DMRG2, DMRG1S, TDVP1, TDVP2, TDVP1S, leftsweep!, rightsweep!, sweep!, compute!, ground_state!
 export SubspaceExpansionScheme, CHExpansion, OptimalExpansion
 export ExactFiniteMPS, exact_diagonalization, exact_timeevolution
 
@@ -40,15 +40,15 @@ export ExactFiniteMPS, exact_diagonalization, exact_timeevolution
 export boson_matrices, spin_half_matrices, spin_matrices
 
 
-# #default settings
-# module Defaults
-# 	const maxiter = 100
-# 	const tolgauge = 1e-14
-# 	const tol = 1e-12
-# 	const verbosity = 1
-# 	import KrylovKit: GMRES
-# 	const solver = GMRES(tol=1e-12, maxiter=100)
-# end
+#default settings
+module Defaults
+	const maxiter = 100
+	const tolgauge = 1e-14
+	const tol = 1e-12
+	const verbosity = 1
+	import KrylovKit: GMRES
+	const solver = GMRES(tol=1e-12, maxiter=100)
+end
 
 
 # auxiliary
@@ -133,12 +133,12 @@ include("utilities/boson_siteops.jl")
 include("utilities/fermion_siteops.jl")
 
 
-# function precompile_util()
-# 	p1 = spinal_fermion_site_ops_u1_su2()
-# 	p2 = spinal_fermion_site_ops_u1_u1()
-# 	p3 = spinal_fermion_site_ops_dense()
-# end
+function _precompile_()
+	@assert precompile(spinal_fermion_site_ops_u1_su2, ())
+	@assert precompile(spinal_fermion_site_ops_u1_u1, ())
+	@assert precompile(spinal_fermion_site_ops_dense, ())
+end
 
-# precompile_util()
+_precompile_()
 
 end

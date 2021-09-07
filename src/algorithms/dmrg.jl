@@ -1,22 +1,24 @@
 abstract type AbstractDMRGAlgorithm end
 
-
-struct DMRG1 <: AbstractDMRGAlgorithm 
-	verbosity::Int
+@with_kw struct DMRG1 <: AbstractDMRGAlgorithm 
+	maxiter::Int = Defaults.maxiter
+	tol::Float64 = Defaults.tol
+	verbosity::Int = Defaults.verbosity
 end
-
-DMRG1(;verbosity::Int=1) = DMRG1(verbosity) 
 
 function leftsweep!(m::FiniteEnv, alg::DMRG1)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
 	Energies = Float64[]
+	delta = 0.
 	for site in 1:length(mps)-1
 		(alg.verbosity > 2) && println("sweeping from left to right at site: $site.")
 		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
+		# galerkin error
+		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -24,7 +26,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1)
 		# hstorage[site+1] = updateleft(hstorage[site], mps[site], mpo[site], mps[site])
 		updateleft!(m, site)
 	end
-	return Energies
+	return Energies, delta
 end
 
 function rightsweep!(m::FiniteEnv, alg::DMRG1)
@@ -32,11 +34,14 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1)
 	mps = m.mps
 	hstorage = m.env
 	Energies = Float64[]
+	delta = 0.
 	for site in length(mps):-1:2
 		(alg.verbosity > 2) && println("sweeping from right to left at site: $site.")
 		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
+		# galerkin error
+		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
@@ -44,15 +49,16 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1)
 		# hstorage[site] = updateright(hstorage[site+1], mps[site], mpo[site], mps[site])
 		updateright!(m, site)
 	end
-	return Energies
+	return Energies, delta
 end
 
 
-struct DMRG2{C<:TensorKit.TruncationScheme} <: AbstractDMRGAlgorithm
-	trunc::C
-	verbosity::Int
+@with_kw struct DMRG2{C<:TensorKit.TruncationScheme} <: AbstractDMRGAlgorithm
+	maxiter::Int = Defaults.maxiter
+	tol::Float64 = Defaults.tol	
+	verbosity::Int = Defaults.verbosity
+	trunc::C = default_truncation()
 end
-DMRG2(;trunc::TruncationScheme=default_truncation(), verbosity::Int=1) = DMRG2(trunc, verbosity)
 
 
 function leftsweep!(m::FiniteEnv, alg::DMRG2)
@@ -61,6 +67,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG2)
 	hstorage = m.env
 	trunc = alg.trunc
 	Energies = Float64[]
+	delta = 0.
 	for site in 1:length(mps)-2
 		(alg.verbosity > 2) && println("sweeping from left to right at bond: $site.")
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
@@ -69,12 +76,16 @@ function leftsweep!(m::FiniteEnv, alg::DMRG2)
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")				
 		# prepare mps site tensor to be left canonical
 		u, s, v, err = tsvd!(vecs[1], trunc=trunc)
+		normalize!(s)
 		mps[site] = u
 		mps[site+1] = @tensor tmp[-1 -2; -3] := s[-1, 1] * v[1, -2, -3]
+		# compute error
+		err_1 = @tensor twositemps[1,2,3,4]*conj(u[1,2,5])*conj(s[5,6])*conj(v[6,3,4])
+        delta = max(delta,abs(1-abs(err_1)))
 		# hstorage[site+1] = updateleft(hstorage[site], mps[site], mpo[site], mps[site])
 		updateleft!(m, site)
 	end
-	return Energies	
+	return Energies, delta
 end
 
 function rightsweep!(m::FiniteEnv, alg::DMRG2)
@@ -83,6 +94,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG2)
 	hstorage = m.env
 	trunc = alg.trunc
 	Energies = Float64[]
+	delta = 0.
 	for site in length(mps)-1:-1:1
 		(alg.verbosity > 2) && println("sweeping from right to left at bond: $site.")
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
@@ -91,25 +103,28 @@ function rightsweep!(m::FiniteEnv, alg::DMRG2)
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")	
 		# prepare mps site tensor to be right canonical
 		u, s, v, err = tsvd!(vecs[1], trunc=trunc)	
+		normalize!(s)
 		mps[site] = @tensor tmp[-1 -2; -3] := u[-1, -2, 1] * s[1, -3]
 		mps[site+1] = permute(v, (1,2), (3,))
 		mps.s[site+1] = s
+		# compute error
+		err_1 = @tensor twositemps[1,2,3,4]*conj(u[1,2,5])*conj(s[5,6])*conj(v[6,3,4])
+        delta = max(delta,abs(1-abs(err_1)))
 		# hstorage[site+1] = updateright(hstorage[site+2], mps[site+1], mpo[site+1], mps[site+1])
 		updateright!(m, site+1)
 	end
-	return Energies
+	return Energies, delta
 end
 
 
 
-struct DMRG1S{C<:TensorKit.TruncationScheme, E<:SubspaceExpansionScheme} <: AbstractDMRGAlgorithm
-	trunc::C
-	expan::E
-	verbosity::Int
+@with_kw  struct DMRG1S{C<:TensorKit.TruncationScheme, E<:SubspaceExpansionScheme} <: AbstractDMRGAlgorithm
+	maxiter::Int = Defaults.maxiter
+	tol::Float64 = Defaults.tol	
+	verbosity::Int = Defaults.verbosity
+	trunc::C = default_truncation()
+	expan::E = default_expansion()
 end
-
-DMRG1S(;trunc::TruncationScheme=default_truncation(), expan::SubspaceExpansionScheme=default_expansion(), verbosity::Int=1) = DMRG1S(trunc, expan, verbosity)
-
 
 function leftsweep!(m::FiniteEnv, alg::DMRG1S)
 	mpo = m.mpo
@@ -117,6 +132,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1S)
 	hstorage = m.env
 	trunc = alg.trunc
 	Energies = Float64[]
+	delta = 0.
 	for site in 1:length(mps)-1
 		(alg.verbosity > 2) && println("sweeping from left to right at site: $site.")
 		# subspace expansion
@@ -126,6 +142,8 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1S)
 		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
+		# galerkin error
+		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -133,7 +151,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1S)
 		# hstorage[site+1] = updateleft(hstorage[site], mps[site], mpo[site], mps[site])
 		updateleft!(m, site)
 	end
-	return Energies
+	return Energies, delta
 end
 
 function rightsweep!(m::FiniteEnv, alg::DMRG1S)
@@ -142,6 +160,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 	hstorage = m.env
 	trunc = alg.trunc
 	Energies = Float64[]
+	delta = 0.
 	for site in length(mps):-1:2
 		(alg.verbosity > 2) && println("sweeping from right to left at site: $site.")
 
@@ -152,6 +171,8 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
+		# galerkin error
+		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
@@ -159,24 +180,29 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 		# hstorage[site] = updateright(hstorage[site+1], mps[site], mpo[site], mps[site])
 		updateright!(m, site)
 	end
-	return Energies
+	return Energies, delta
 end
 
-
-function compute!(env::AbstractEnv, alg::AbstractDMRGAlgorithm; maxiter::Int=100, tol::Real=1.0e-8)
+"""
+	compute!(env::AbstractEnv, alg::AbstractDMRGAlgorithm)
+	execute dmrg iterations
+"""
+function compute!(env::AbstractEnv, alg::AbstractDMRGAlgorithm)
 	all_energies = Float64[]
-	for i in 1:maxiter
-		(alg.verbosity > 2) && println("the $i-th sweep...", "\n")
-		Energies = sweep!(env, alg)
+	iter = 0
+	delta = 2 * alg.tol
+	while iter < alg.maxiter && delta > alg.tol
+		Energies, delta = sweep!(env, alg)
 		append!(all_energies, Energies)
-		Energies = abs.(Energies .- Energies[end])
-		if (mean(Energies) <= tol) || (std(Energies) / mean(Energies) < tol)
-			break
-		end
+		(alg.verbosity > 2) && println("finish the $iter-th sweep with error $delta", "\n")
 	end
-	return all_energies
+	return all_energies, delta
 end
 
-
+"""
+	return the ground state
+	ground_state!(state::FiniteMPS, h::Union{MPOHamiltonian, FiniteMPO}, alg::AbstractDMRGAlgorithm)
+"""
+ground_state!(state::FiniteMPS, h::Union{MPOHamiltonian, FiniteMPO}, alg::AbstractDMRGAlgorithm=DMRG1S()) = compute!(environments(h, state), alg)
 
 
