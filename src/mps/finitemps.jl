@@ -64,6 +64,11 @@ end
 
 sector(psi::FiniteMPS) = first(sectors(space_r(psi)'))
 
+function Base.cat(psiA::FiniteMPS, psiB::FiniteMPS)
+	(space_r(psiA)' == space_l(psiB)) || throw(SpaceMismatch("can not cat two states with non compatible sectors."))
+	return FiniteMPS(vcat(raw_data(psiA), raw_data(psiB)))
+end
+
 function _svectors_uninitialized(x)
 	isempty(x) && return true
 	s = raw_singular_matrices(x)
