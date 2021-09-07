@@ -188,7 +188,7 @@ function infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sec
         tmp = Tensor(ones,T, oneunit(S))
         iden = FiniteMPS([@tensor o[-1 -2; -3] := tmp[-1] * conj(fj[1,1,-2]) * conj(tmp[-3]) for fj in phy_fusers])
      end
-     return FiniteDensityOperatorMPS(iden, phy_fusers, iden)
+     return FiniteDensityOperatorMPS(copy(iden), phy_fusers, iden)
 end
 infinite_temperature_state(physpaces::Vector{S}; kwargs...) where {S<:EuclideanSpace} = infinite_temperature_state(ComplexF64, physpaces; kwargs...)
 
