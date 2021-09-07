@@ -162,3 +162,21 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 	return Energies
 end
 
+
+function compute!(env::AbstractEnv, alg::AbstractDMRGAlgorithm; maxiter::Int=100, tol::Real=1.0e-8)
+	all_energies = Float64[]
+	for i in 1:maxiter
+		(alg.verbosity > 2) && println("the $i-th sweep...", "\n")
+		Energies = sweep!(env, alg)
+		append!(all_energies, Energies)
+		Energies = abs.(Energies .- Energies[end])
+		if (mean(Energies) <= tol) || (std(Energies) / mean(Energies) < tol)
+			break
+		end
+	end
+	return all_energies
+end
+
+
+
+

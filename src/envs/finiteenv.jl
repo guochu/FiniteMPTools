@@ -22,7 +22,7 @@ end
 init_hstorage_right(mpo::Union{FiniteMPO, MPOHamiltonian}, mps::FiniteMPS) = init_hstorage(mpo, mps, 1)
 
 
-struct FiniteEnv{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H}
+struct FiniteEnv{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H} <: AbstractEnv
 	mpo::M
 	mps::V
 	hstorage::H
@@ -54,7 +54,7 @@ end
 
 
 # for excited states
-struct ExcitedFiniteEnv{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H, C}
+struct ExcitedFiniteEnv{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H, C} <: AbstractEnv
 	mpo::M
 	mps::V
 	projectors::Vector{V}

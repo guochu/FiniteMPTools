@@ -26,7 +26,7 @@ function TensorKit._truncate!(v, trunc::MPSTruncation, p::Real = 2)
 	verbosity = trunc.verbosity
 	s_1 = compute_size(v)
 	# truncate using relative cutof
-	v, err1 = TensorKit._truncate!(v, TensorKit.truncbelow(trunc.ϵ / n), p)
+	v, err1 = TensorKit._truncate!(v, TensorKit.truncbelow(trunc.ϵ * n), p)
 	s_2 = compute_size(v)
 	if s_2 <= trunc.dim
 		(verbosity >= 2) && println("sum: $s_1 -> $s_2.")
