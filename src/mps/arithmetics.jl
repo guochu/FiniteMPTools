@@ -241,7 +241,7 @@ function _otimes(x::FiniteMPS, y::AdjointFiniteMPS, f, trunc::TruncationScheme)
     rightorth!(mpsout, trunc=trunc)
 
     if f === ⊠
-        iden = _boxtimes_iden_mps(T, physical_spaces(mpsout), sector(mpsout))
+        iden = _boxtimes_iden_mps(T, physical_spaces(mpsout), space_l(mpsout), space_r(mpsout)')
     else
         # f === ⊗
         tmp = get_trivial_leg(mpsout[1])

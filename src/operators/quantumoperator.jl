@@ -29,7 +29,7 @@ function QuantumOperator(ms::Vector{<:AbstractQuantumTerm})
 	return QuantumOperator{S, M}(ms)
 end
 
-scalar_type(::Type{QuantumOperator{S, M}}) where {S <: EuclideanSpace, M <: MPOTensor} = scalar_type(M)
+scalar_type(::Type{QuantumOperator{S, M}}) where {S <: EuclideanSpace, M <: MPOTensor} = eltype(M)
 scalar_type(x::QuantumOperator) = scalar_type(typeof(x))
 
 
