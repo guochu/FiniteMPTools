@@ -2,7 +2,6 @@ module FiniteMPTools
 
 using Logging: @warn
 using Parameters, KrylovKit, TensorKit
-using Statistics
 import TensorKit, LinearAlgebra
 
 # auxiliary
@@ -34,6 +33,7 @@ export QTerm, QuantumOperator, add!, isstrict, qterms, superoperator, add_unitar
 # algorithms
 export trotter_propagator, DMRG1, DMRG2, DMRG1S, TDVP1, TDVP2, TDVP1S, leftsweep!, rightsweep!, sweep!, compute!, ground_state!
 export SubspaceExpansionScheme, CHExpansion, OptimalExpansion
+export DMRGAlgorithm, TDVPAlgorithm
 export ExactFiniteMPS, exact_diagonalization, exact_timeevolution
 
 # utilities

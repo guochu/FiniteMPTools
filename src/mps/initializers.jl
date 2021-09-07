@@ -5,7 +5,7 @@ function FiniteMPS(f, ::Type{T}, physpaces::Vector{S}, virtualpaces::Vector{S}) 
 	L = length(physpaces)
 	(length(virtualpaces) == L+1) || throw(DimensionMismatch())
 	# (dim(virtualpaces[end]) == 1) || throw(DimensionMismatch())
-	(virtualpaces[1] == oneunit(S)) || throw(DimensionMismatch())
+	(dim(virtualpaces[1]) == 1) || throw(DimensionMismatch())
 	any([dim(item)==0 for item in virtualpaces]) &&  @warn "auxiliary space is empty."
 	mpstensors = [TensorMap(f, T, virtualpaces[i] ⊗ physpaces[i] ← virtualpaces[i+1]) for i in 1:L]
 	return FiniteMPS(mpstensors)

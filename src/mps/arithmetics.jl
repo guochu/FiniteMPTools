@@ -144,10 +144,8 @@ function is_diagonal_sector(sector::Sector)
 end
 select_diagonal(s::S) where {S <: EuclideanSpace} = S(sector=>dim(s, sector) for sector in sectors(s) if is_diagonal_sector(sector))
 
-function _boxtimes_iden_mps(::Type{T}, physpaces::Vector{S}, sector::Sector) where {T, S <: GradedSpace}
+function _boxtimes_iden_mps(::Type{T}, physpaces::Vector{S}, left::S, right::S) where {T, S <: GradedSpace}
     L = length(physpaces)
-    left = oneunit(S)
-    right = S(sector=>1)
     virtualpaces = Vector{S}(undef, L+1)
     virtualpaces[1] = left
     for i in 2:L
@@ -162,7 +160,7 @@ function _boxtimes_iden_mps(::Type{T}, physpaces::Vector{S}, sector::Sector) whe
     return FiniteMPS([TensorMap(ones, T, virtualpaces[i] ⊗ physpaces[i], virtualpaces[i+1]) for i in 1:L])
 end
 
-function _boxtimes_iden_mps(::Type{T}, physpaces::Vector{S}, sector::Sector) where {T, S <: Union{ComplexSpace, CartesianSpace}}
+function _boxtimes_iden_mps(::Type{T}, physpaces::Vector{S}, left::S, right::S) where {T, S <: Union{ComplexSpace, CartesianSpace}}
     L = length(physpaces)
     mpstensors = Vector{Any}(undef, L)
     for i in 1:L
@@ -178,13 +176,13 @@ end
     infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sector, fuser=⊠) where {T<:Number, S<:EuclideanSpace}
     create an infinite temperature state (identity) as mps, namely |I⟩
 """
-function infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sector=first(sectors(oneunit(S))), fuser=⊠) where {T<:Number, S<:EuclideanSpace}
+function infinite_temperature_state(::Type{T}, physpaces::Vector{S}; left::S=oneunit(S), right::S=oneunit(S), fuser=⊠) where {T<:Number, S<:EuclideanSpace}
      ((fuser === ⊠) || (fuser === ⊗)) || throw(ArgumentError("fuser should be ⊗ or ⊠."))
      phy_fusers = [isomorphism(Matrix{T}, fuser(ph, ph'), fuse(fuser(ph, ph')) ) for ph in physpaces]
      if fuser === ⊠
-        iden = _boxtimes_iden_mps(T, [space(item, 3)' for item in phy_fusers], sector ⊠ dual(sector) )
+        iden = _boxtimes_iden_mps(T, [space(item, 3)' for item in phy_fusers], fuse(left⊠left'), fuse(right⊠right') )
      else
-        (sector == first(sectors(oneunit(S)))) || @warn "sector is forced to be vacuum for fuser ⊗."
+        (left == right == oneunit(S)) || @warn "sector is forced to be vacuum for fuser ⊗."
         tmp = Tensor(ones,T, oneunit(S))
         iden = FiniteMPS([@tensor o[-1 -2; -3] := tmp[-1] * conj(fj[1,1,-2]) * conj(tmp[-3]) for fj in phy_fusers])
      end

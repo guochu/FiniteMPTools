@@ -1,4 +1,4 @@
-# push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
+push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
 
 using Test
 using TensorKit
@@ -171,7 +171,12 @@ function initial_state_dense(L)
 end 
 
 function do_dmrg(dmrg, alg)
-	Evals, delta = compute!(dmrg, alg)
+	dmrg_sweeps = 5
+	# Evals, delta = compute!(dmrg, alg)
+	Evals = Float64[]
+	for i in 1:dmrg_sweeps
+		Evals, delta = sweep!(dmrg, alg)
+	end
 	return Evals[end]
 end
 
@@ -200,6 +205,7 @@ function test_ground_state(L)
 
 	E, _st = exact_diagonalization(mpo, sector=sector, num=1, ishermitian=true)
 	push!(all_Es, E[1])
+	# println("energies $all_Es")
 
 	return maximum(abs.(all_Es .- all_Es[1])) 
 end
@@ -266,6 +272,7 @@ function test_excitations(L)
 
 	E, _st = exact_diagonalization(mpo, sector=sector, num=2, ishermitian=true)
 	push!(U1_Es, E[2])
+	# println(U1_Es)
 
 	# hubbard chain u1 su2 dmrg
 	SU2_Es = Float64[]
@@ -283,6 +290,7 @@ function test_excitations(L)
 	E, _st = exact_diagonalization(mpo, sector=sector, num=2, ishermitian=true)
 	push!(SU2_Es, E[2])
 
+	# println(SU2_Es)
 	return max(maximum(abs.(U1_Es .- U1_Es[1])), maximum(abs.(SU2_Es .- SU2_Es[1])) ) 
 end
 

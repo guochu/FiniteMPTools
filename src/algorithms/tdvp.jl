@@ -1,6 +1,6 @@
-abstract type AbstractTDVPAlgorithm end
+abstract type TDVPAlgorithm end
 
-struct TDVP1{T} <: AbstractTDVPAlgorithm
+struct TDVP1{T} <: TDVPAlgorithm
 	stepsize::T
 	ishermitian::Bool
 	verbosity::Int
@@ -54,7 +54,7 @@ function _rightsweep!(m::FiniteEnv, alg::TDVP1)
 	end
 end
 
-struct TDVP2{T, C<:TensorKit.TruncationScheme} <: AbstractTDVPAlgorithm
+struct TDVP2{T, C<:TensorKit.TruncationScheme} <: TDVPAlgorithm
 	stepsize::T
 	ishermitian::Bool	
 	trunc::C
@@ -121,7 +121,7 @@ function _rightsweep!(m::FiniteEnv, alg::TDVP2)
 end
 
 
-struct TDVP1S{T, C<:TensorKit.TruncationScheme, E<:SubspaceExpansionScheme} <: AbstractTDVPAlgorithm
+struct TDVP1S{T, C<:TensorKit.TruncationScheme, E<:SubspaceExpansionScheme} <: TDVPAlgorithm
 	stepsize::T
 	ishermitian::Bool	
 	trunc::C
@@ -188,7 +188,7 @@ end
 
 
 
-function sweep!(m::FiniteEnv, alg::AbstractTDVPAlgorithm; kwargs...)
+function sweep!(m::FiniteEnv, alg::TDVPAlgorithm; kwargs...)
 	_leftsweep!(m, alg; kwargs...)
 	_rightsweep!(m, alg; kwargs...)
 end

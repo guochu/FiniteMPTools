@@ -1,11 +1,12 @@
-abstract type AbstractDMRGAlgorithm end
+abstract type DMRGAlgorithm end
 
-@with_kw struct DMRG1 <: AbstractDMRGAlgorithm 
+@with_kw struct DMRG1 <: DMRGAlgorithm 
 	maxiter::Int = Defaults.maxiter
 	tol::Float64 = Defaults.tol
 	verbosity::Int = Defaults.verbosity
 end
 
+# delayed evaluation of galerkin error.
 function leftsweep!(m::FiniteEnv, alg::DMRG1)
 	mpo = m.mpo
 	mps = m.mps
@@ -18,7 +19,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		# galerkin error
-		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -41,7 +42,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
 		# galerkin error
-		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
@@ -53,7 +54,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1)
 end
 
 
-@with_kw struct DMRG2{C<:TensorKit.TruncationScheme} <: AbstractDMRGAlgorithm
+@with_kw struct DMRG2{C<:TensorKit.TruncationScheme} <: DMRGAlgorithm
 	maxiter::Int = Defaults.maxiter
 	tol::Float64 = Defaults.tol	
 	verbosity::Int = Defaults.verbosity
@@ -118,7 +119,7 @@ end
 
 
 
-@with_kw  struct DMRG1S{C<:TensorKit.TruncationScheme, E<:SubspaceExpansionScheme} <: AbstractDMRGAlgorithm
+@with_kw  struct DMRG1S{C<:TensorKit.TruncationScheme, E<:SubspaceExpansionScheme} <: DMRGAlgorithm
 	maxiter::Int = Defaults.maxiter
 	tol::Float64 = Defaults.tol	
 	verbosity::Int = Defaults.verbosity
@@ -143,7 +144,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1S)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		# galerkin error
-		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -172,7 +173,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
 		# galerkin error
-		delta = max(delta, norm(leftnull(vecs[1])' * ac_prime(vecs[1], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
@@ -184,16 +185,19 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 end
 
 """
-	compute!(env::AbstractEnv, alg::AbstractDMRGAlgorithm)
+	compute!(env::AbstractEnv, alg::DMRGAlgorithm)
 	execute dmrg iterations
 """
-function compute!(env::AbstractEnv, alg::AbstractDMRGAlgorithm)
+function compute!(env::AbstractEnv, alg::DMRGAlgorithm)
 	all_energies = Float64[]
 	iter = 0
 	delta = 2 * alg.tol
+	# do a first sweep anyway?
+	# Energies, delta = sweep!(env, alg)
 	while iter < alg.maxiter && delta > alg.tol
 		Energies, delta = sweep!(env, alg)
 		append!(all_energies, Energies)
+		iter += 1
 		(alg.verbosity > 2) && println("finish the $iter-th sweep with error $delta", "\n")
 	end
 	return all_energies, delta
@@ -201,8 +205,8 @@ end
 
 """
 	return the ground state
-	ground_state!(state::FiniteMPS, h::Union{MPOHamiltonian, FiniteMPO}, alg::AbstractDMRGAlgorithm)
+	ground_state!(state::FiniteMPS, h::Union{MPOHamiltonian, FiniteMPO}, alg::DMRGAlgorithm)
 """
-ground_state!(state::FiniteMPS, h::Union{MPOHamiltonian, FiniteMPO}, alg::AbstractDMRGAlgorithm=DMRG1S()) = compute!(environments(h, state), alg)
+ground_state!(state::FiniteMPS, h::Union{MPOHamiltonian, FiniteMPO}, alg::DMRGAlgorithm=DMRG1S()) = compute!(environments(h, state), alg)
 
 

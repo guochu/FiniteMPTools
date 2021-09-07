@@ -106,8 +106,7 @@ function Base.:*(h::FiniteMPO, psi::FiniteMPS)
     (length(h) == length(psi)) || throw(DimensionMismatch())
     isempty(h) && throw(ArgumentError("input operator is empty."))
     r = [@tensor tmp[-1 -2; -3 -4 -5] := a[-1, -3, -4, 1] * b[-2, 1, -5] for (a, b) in zip(raw_data(h), raw_data(psi))]
-    vacuum = oneunit(space_l(psi))
-    left = isomorphism(fuse(vacuum, vacuum), vacuum ⊗ vacuum)
+    left = isomorphism(fuse(space_l(h), space_l(psi)), space_l(h) ⊗ space_l(psi))
     fusion_ts = [isomorphism(space(item, 4)' ⊗ space(item, 5)', fuse(space(item, 4)', space(item, 5)')) for item in r]
     @tensor tmp[-1 -2; -3] := left[-1, 1, 2] * r[1][1,2,-2,3,4] * fusion_ts[1][3,4,-3]
     mpstensors = Vector{typeof(tmp)}(undef, length(h))
@@ -126,8 +125,7 @@ Base.:*(h::AdjointFiniteMPO, psi::AdjointFiniteMPS) = (h.parent * psi.parent)'
 function _mult_n_n(a::Vector{<:MPOTensor}, b::Vector{<:MPOTensor})
     r = [@tensor tmp[-1 -2 -3; -4 -5 -6] := aj[-1, -3, -4, 1] * bj[-2, 1, -5, -6] for (aj, bj) in zip(a, b)]
     T = eltype(r[1])
-    vacuum = oneunit(space(a[1], 1))
-    left = isomorphism(Matrix{T}, fuse(vacuum, vacuum), vacuum ⊗ vacuum)
+    left = isomorphism(Matrix{T}, fuse(space(a[1], 1), space(b[1], 1)), space(a[1], 1) ⊗ space(b[1], 1))
     fusion_ts = [isomorphism(Matrix{T}, space(item, 4)' ⊗ space(item, 5)', fuse(space(item, 4)', space(item, 5)')) for item in r]
     @tensor tmp[-1 -2; -3 -4] := left[-1, 1, 2] * r[1][1,2,-2,3,4,-4] * fusion_ts[1][3,4,-3]
     mpotensors = Vector{typeof(tmp)}(undef, length(a))

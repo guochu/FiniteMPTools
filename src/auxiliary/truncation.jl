@@ -44,9 +44,9 @@ end
 
 const DefaultSVDCutoff = 1.0e-8
 const DefaultVerbosity = 1
-const DefaultNonSymmetricD = 200
-const DefaultAbelianSymmetricD = 1000
-const DefaultNonAbelianSymmetricD = 10000
+const DefaultNonSymmetricD = 100
+const DefaultAbelianSymmetricD = 500
+const DefaultNonAbelianSymmetricD = 1000
 
 function default_truncation(::Type{S}) where {S <: EuclideanSpace}
 	D = 0

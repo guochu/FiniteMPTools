@@ -78,16 +78,14 @@ svectors_initialized(psi::FiniteMPS) = !svectors_uninitialized(psi)
 _check_mps_tensor_dir(m::MPSTensor) = (!isdual(space(m, 1))) && (!isdual(space(m, 2))) && isdual(space(m, 3))
 _check_mps_bond_dir(m::MPSBondTensor) = (!isdual(space(m, 1))) && isdual(space(m, 2))
 
-_space_l_is_vacuum(m) = space(m, 1) == oneunit(space(m, 1))
-
 function _check_mps_space(mpstensors::Vector; strict::Bool=true)
 	all(_check_mps_tensor_dir.(mpstensors)) || throw(SpaceMismatch())
 	for i in 1:length(mpstensors)-1
 		(space(mpstensors[i], 3) == space(mpstensors[i+1], 1)') || throw(SpaceMismatch())
 	end
 
-	# require the left boundary to be vacuum
-	_space_l_is_vacuum(mpstensors[1]) || throw(SpaceMismatch())
+	# just require the left boundary to be a single sector
+	(dim(space(mpstensors[1], 1)) == 1) || throw(SpaceMismatch("left boundary should be a single sector."))
 	# require the right boundary has dimension 1.
 	if strict
 		(dim(space(mpstensors[end], 3)) == 1) || throw(SpaceMismatch())
