@@ -182,9 +182,9 @@ function infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sec
      ((fuser === ⊠) || (fuser === ⊗)) || throw(ArgumentError("fuser should be ⊗ or ⊠."))
      phy_fusers = [isomorphism(Matrix{T}, fuser(ph, ph'), fuse(fuser(ph, ph')) ) for ph in physpaces]
      if fuser === ⊠
-        iden = _boxtimes_iden_mps(T, [space(item, 2)' for item in phy_fusers], sector ⊠ dual(sector) )
+        iden = _boxtimes_iden_mps(T, [space(item, 3)' for item in phy_fusers], sector ⊠ dual(sector) )
      else
-        (sector == oneunit(S)) || @warn "sector is forced to be vacuum for fuser ⊗."
+        (sector == first(sectors(oneunit(S)))) || @warn "sector is forced to be vacuum for fuser ⊗."
         tmp = Tensor(ones,T, oneunit(S))
         iden = FiniteMPS([@tensor o[-1 -2; -3] := tmp[-1] * conj(fj[1,1,-2]) * conj(tmp[-3]) for fj in phy_fusers])
      end
