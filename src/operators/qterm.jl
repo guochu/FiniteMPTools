@@ -196,6 +196,8 @@ Base.adjoint(m::AdjointQTerm) = m.parent
 positions(m::AdjointQTerm) = positions(m.parent)
 coeff(m::AdjointQTerm) = conj(coeff(m.parent))
 scalar_type(m::AdjointQTerm) = scalar_type(m.parent)
+is_constant(s::AdjointQTerm) = is_constant(s.parent)
+
 
 function QTerm(m::AdjointQTerm)
 	isstrict(m.parent) || throw(ArgumentError("can not convert non-strict QTerm adjoint into a QTerm."))

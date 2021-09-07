@@ -49,6 +49,18 @@ Base.:*(psi::FiniteMPS, f::Number) = lmul!(f, copy(psi))
 Base.:*(f::Number, psi::FiniteMPS) = psi * f
 Base.:/(psi::FiniteMPS, f::Number) = psi * (1/f)
 
+function LinearAlgebra.normalize!(psi::FiniteDensityOperatorMPS)
+    n = tr(psi)
+    (n ≈ 0.) && @warn "density operator has zero trace."
+    if n != one(n)
+        factor = n^(1 / length(psi))
+        for i in 1:length(psi)
+            psi[i] = psi[i] / factor
+        end
+    end
+    return psi
+end
+
 
 # # the function catdomain has to be generalized
 # _cat_mps_site_tensor(a, b) = permute(catcodomain(permute(a, (2,), (1,3)), permute(b, (2,), (1,3))), (2,), (1,3))
@@ -166,18 +178,21 @@ end
     infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sector, fuser=⊠) where {T<:Number, S<:EuclideanSpace}
     create an infinite temperature state (identity) as mps, namely |I⟩
 """
-function infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sector, fuser=⊠) where {T<:Number, S<:EuclideanSpace}
+function infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sector=first(sectors(oneunit(S))), fuser=⊠) where {T<:Number, S<:EuclideanSpace}
      ((fuser === ⊠) || (fuser === ⊗)) || throw(ArgumentError("fuser should be ⊗ or ⊠."))
-     phy_fusers = [isomorphism(Matrix{T}, ph ⊗ ph', fuse(ph, ph') ) for ph in physpaces]
+     phy_fusers = [isomorphism(Matrix{T}, fuser(ph, ph'), fuse(fuser(ph, ph')) ) for ph in physpaces]
      if fuser === ⊠
-         iden = _boxtimes_iden_mps(T, physical_spaces, sector)
+        iden = _boxtimes_iden_mps(T, [space(item, 2)' for item in phy_fusers], sector ⊠ dual(sector) )
      else
+        (sector == oneunit(S)) || @warn "sector is forced to be vacuum for fuser ⊗."
         tmp = Tensor(ones,T, oneunit(S))
         iden = FiniteMPS([@tensor o[-1 -2; -3] := tmp[-1] * conj(fj[1,1,-2]) * conj(tmp[-3]) for fj in phy_fusers])
      end
      return FiniteDensityOperatorMPS(iden, phy_fusers, iden)
 end
 infinite_temperature_state(physpaces::Vector{S}; kwargs...) where {S<:EuclideanSpace} = infinite_temperature_state(ComplexF64, physpaces; kwargs...)
+
+
 
 # initializing density operator
 # f is ⊗ or ⊠
