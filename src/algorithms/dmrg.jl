@@ -8,9 +8,9 @@ end
 
 function calc_galerkin(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int)
 	mpsj = m.mps[site]
-	if dim(codomain(mpsj)) >= dim(domain(mpsj))
+	try
 		return norm(leftnull(mpsj)' * ac_prime(mpsj, m.mpo[site], m.hstorage[site], m.hstorage[site+1]))
-	else
+	catch
 		return norm(permute(ac_prime(mpsj, m.mpo[site], m.hstorage[site], m.hstorage[site+1]), (1,), (2,3)) * rightnull(permute(mpsj, (1,), (2,3) ) )' )
 	end
 end
