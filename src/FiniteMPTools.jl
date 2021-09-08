@@ -16,10 +16,11 @@ export physical_spaces, FiniteDensityOperatorMPS, DensityOperator, infinite_temp
 # export InfiniteMPS
 
 # mpo
-export AbstractMPO, FiniteMPO, prodmpo, deparallelise!, deparallelise, expectation, SiteOp, ScalarSiteOp
+export AbstractMPO, FiniteMPO, prodmpo, expectation, SiteOp, ScalarSiteOp, svdcompress!
+export MPOCompression, SVDCompression, Deparallelise, compress!
 
 # mpohamiltonian
-export SchurMPOTensor, MPOHamiltonian, period, odim
+export SchurMPOTensor, MPOHamiltonian, period, odim, ExponentialDecayTerm, GenericDecayTerm, PowerlawDecayTerm, exponential_expansion
 
 # environments
 export environments
@@ -84,6 +85,7 @@ include("mpo/abstractdefs.jl")
 include("mpo/transfer.jl")
 include("mpo/finitempo.jl")
 include("mpo/adjointmpo.jl")
+include("mpo/compress.jl")
 include("mpo/initializers.jl")
 include("mpo/arithmetics.jl")
 include("mpo/deparlise.jl")
@@ -96,6 +98,7 @@ include("mpohamiltonian/schurmpotensor.jl")
 include("mpohamiltonian/mpohamiltonian.jl")
 include("mpohamiltonian/transfer.jl")
 include("mpohamiltonian/arithmetics.jl")
+include("mpohamiltonian/constructor.jl")
 
 # environments
 include("envs/abstractdefs.jl")
@@ -137,6 +140,7 @@ function _precompile_()
 	@assert precompile(spinal_fermion_site_ops_u1_su2, ())
 	@assert precompile(spinal_fermion_site_ops_u1_u1, ())
 	@assert precompile(spinal_fermion_site_ops_dense, ())
+	# ph = Rep[U₁×SU₂]((-0.5, 0)=>1, (0.5, 0)=>1, (0, 0.5)=>1)
 end
 
 _precompile_()

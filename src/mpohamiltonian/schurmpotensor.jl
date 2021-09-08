@@ -11,6 +11,8 @@ end
 
 Base.copy(x::SchurMPOTensor) = SchurMPOTensor(copy(x.Os), copy(x.imspaces), copy(x.omspaces), x.pspace)
 
+# upper triangular form
+# the middle diagonal terms may be identity operator or the JW operator,
 function SchurMPOTensor{S, M, T}(data::Array{E, 2}) where {S<:EuclideanSpace, M <:MPOTensor, T<:Number, E}
 	# (isa(data[1, 1], MPOTensor) && isa(data[end, end], MPOTensor)) || throw(ArgumentError("upper left and lower right corner should be identity tensors."))
 	m, n = size(data)
@@ -35,6 +37,7 @@ function SchurMPOTensor{S, M, T}(data::Array{E, 2}) where {S<:EuclideanSpace, M 
  				s_p = space(sj, 2)
  				(s_p == space(sj, 4)') || throw(SpaceMismatch())
  				if !ismissing(imspaces[i])
+ 					# (imspaces[i] == s_l) || println(imspaces[i], s_l)
  					(imspaces[i] == s_l) || throw(SpaceMismatch())
  				else
  					imspaces[i] = s_l
@@ -60,8 +63,8 @@ function SchurMPOTensor{S, M, T}(data::Array{E, 2}) where {S<:EuclideanSpace, M 
 			if i > j
 				(sj == zero(T)) || throw(ArgumentError("Canonical MPO Tensor is upper triangular."))
 				# new_data[i, j] = zero(T)
-			elseif i == j
-				isa(sj, Number) || throw(ArgumentError("diagonals should either be scalars."))
+			# elseif i == j
+			# 	isa(sj, Number) || throw(ArgumentError("diagonals should either be scalars."))
  			end
 
  			new_data[i, j] = sj

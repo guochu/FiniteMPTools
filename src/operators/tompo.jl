@@ -9,20 +9,22 @@ end
 prodmpo(physpaces::Vector{<: EuclideanSpace}, m::AdjointQTerm) = adjoint(prodmpo(physpaces, m.parent))
 
 
-function FiniteMPO(h::QuantumOperator{S}; tol::Real=DeparalleliseTol) where {S <: EuclideanSpace}
+function FiniteMPO(h::QuantumOperator{S}; alg::MPOCompression=Deparallelise()) where {S <: EuclideanSpace}
 	physpaces = convert(Vector{S}, space(h))
 	local mpo
+	compress_threshold = 20
 	for m in qterms(h)
 		if @isdefined mpo
 			mpo += prodmpo(physpaces, m)
 		else
 			mpo = prodmpo(physpaces, m)
 		end
-		if bond_dimension(mpo) >= 20
-			mpo = deparallelise!(mpo, tol=tol)
+		if bond_dimension(mpo) >= compress_threshold
+			mpo = compress!(mpo, alg)
+			compress_threshold += 5
 		end
 	end
-	mpo = deparallelise!(mpo, tol=tol)
+	mpo = compress!(mpo, alg)
 	return mpo
 end
 

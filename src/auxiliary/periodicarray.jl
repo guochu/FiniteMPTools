@@ -39,4 +39,5 @@ Base.repeat(t::PeriodicArray,args::Vararg{Integer,N} where N) = PeriodicArray(re
 
 raw_data(a::PeriodicArray) = a.data
 Base.lastindex(a::PeriodicArray) = lastindex(a.data)
+Base.lastindex(a::PeriodicArray, i::Int) = lastindex(a.data, i)
 Base.firstindex(a::PeriodicArray) = firstindex(a.data)

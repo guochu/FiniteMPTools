@@ -9,8 +9,6 @@ function TensorKit.leftorth!(psi::FiniteMPS; trunc::TruncationScheme = TensorKit
 	maybe_init_boundary_s!(psi)
 	for i in 1:L-1
 		u, s, v, err = tsvd(psi[i], (1, 2), (3,), trunc=trunc)
-		# println(typeof(s))
-		# println(eltype(s))
 		psi[i] = u
 		@tensor v2[-1; -2] := s[-1, 1] * v[1, -2]
 		@tensor tmp[-1 -2; -3] := v2[-1, 1] * psi[i+1][1,-2,-3]
@@ -49,3 +47,4 @@ function right_canonicalize!(psi::FiniteMPS; normalize::Bool=false, trunc::Trunc
 end
 
 canonicalize!(psi::FiniteMPS; kwargs...) = right_canonicalize!(psi; kwargs...)
+svdcompress!(psi; kwargs...) = canonicalize!(psi; kwargs...)
