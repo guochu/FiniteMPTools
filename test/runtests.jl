@@ -1,4 +1,4 @@
-# push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
+push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
 
 using Test
 using TensorKit
@@ -97,10 +97,184 @@ function compare_mpo_ham(L)
 	return maximum(Errs)
 end
 
+
+function power_law_hubbard_chain_mpo(L, J, U, alpha, p)
+	# a, adag, nn, JW, JWa, adagJW = fermionic_site_ops()
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adagJW = adag * JW
+	a = adag'
+	terms = []
+	for i in 1:L
+		push!(terms, QTerm(i => nn, coeff=U))
+	end
+
+
+	for i in 1:L
+	    for j in i+1:L
+	    	coeff = exp(-(j-i)) 
+	    	push!(terms,  QTerm(i=>nn, j=>nn, coeff=coeff) )
+	    	t = QTerm(i=>adagJW, j=>a, coeff=-J*(j-i)^(-alpha) )
+	    	push!(terms, t)
+	    	push!(terms, t')
+	    end
+	end
+
+	observers = [QTerm(i=>nn) for i in 1:L]
+	return QuantumOperator([terms...]), observers
+end
+
+function power_law_hubbard_chain_mpo_ham(L, J, U, alpha, p)
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adagJW = adag * JW
+
+	m = GenericDecayTerm(adagJW, adag', f=x->x^(-alpha), coeff=-J)
+	m2 = ExponentialDecayTerm(nn, nn, α = exp(-1), coeff=1.)
+
+	mm = exponential_expansion(m, len=L, atol=1.0e-8)
+	mm = vcat(mm, adjoint.(mm))
+	mm = vcat(mm, [m2])
+
+	# mm = [m2]
+	mpot = SchurMPOTensor(U * nn, mm)
+
+	observers = [QTerm(i=>nn) for i in 1:L]
+	return MPOHamiltonian([mpot]), observers
+end
+
+function exp_law_hubbard_chain_mpo_f(L, J, alpha, p)
+	# a, adag, nn, JW, JWa, adagJW = fermionic_site_ops()
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adagJW = adag * JW
+	a = adag'
+	terms = []
+
+	for i in 1:L
+	    for j in i+1:L
+	    	coeff = alpha^(j-i) 
+	    	pos = collect(i:j)
+	    	op_v = vcat(vcat([adagJW], [JW for k in (i+1):(j-1)]), [a])
+	    	t = QTerm(pos, op_v, coeff=-J * coeff)
+	    	push!(terms, t)
+	    	push!(terms, t')
+	    end
+	end
+	observers = [QTerm(i=>nn) for i in 1:L]
+	return QuantumOperator([terms...]), observers
+end
+
+function exp_law_hubbard_chain_mpo_ham_f(L, J, alpha, p)
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adagJW = adag * JW
+
+	m = ExponentialDecayTerm(adagJW, JW, adag', α=alpha, coeff=-J)
+
+	# mm = [m2]
+	mpot = SchurMPOTensor([m, m'])
+
+	observers = [QTerm(i=>nn) for i in 1:L]
+	return MPOHamiltonian([mpot]), observers
+end
+
+function power_law_hubbard_chain_mpo_f(L, J, alpha, p)
+	# a, adag, nn, JW, JWa, adagJW = fermionic_site_ops()
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adagJW = adag * JW
+	a = adag'
+	terms = []
+
+	for i in 1:L
+	    for j in i+1:L
+	    	coeff = (j-i)^alpha
+	    	pos = collect(i:j)
+	    	op_v = vcat(vcat([adagJW], [JW for k in (i+1):(j-1)]), [a])
+	    	t = QTerm(pos, op_v, coeff=-J * coeff)
+	    	push!(terms, t)
+	    	push!(terms, t')
+	    end
+	end
+	observers = [QTerm(i=>nn) for i in 1:L]
+	return QuantumOperator([terms...]), observers
+end
+
+function power_law_hubbard_chain_mpo_ham_f(L, J, alpha, p)
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adagJW = adag * JW
+
+	m = PowerlawDecayTerm(adagJW, JW, adag', α=alpha, coeff=-J)
+
+	mm = exponential_expansion(m, len=L, atol=1.0e-8)
+	mm = vcat(mm, adjoint.(mm))
+
+	mpot = SchurMPOTensor(mm)
+
+	observers = [QTerm(i=>nn) for i in 1:L]
+	return MPOHamiltonian([mpot]), observers
+end
+
+function test_power_law_ham(L)
+	J = 1.1
+	U = 1.2
+	alpha = 4.0
+
+
+	h1, observers =power_law_hubbard_chain_mpo(L, J, U, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+
+	mpo1 = FiniteMPO(h1, alg=Deparallelise(tol=1.0e-11))
+	mpo2 = FiniteMPO(h1, alg=SVDCompression(tol=1.0e-11))
+
+
+	h2, observers = power_law_hubbard_chain_mpo_ham(L, J, U, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+
+	mpo3 = FiniteMPO(h2, L)
+
+	return max(distance(mpo1, mpo2), distance(mpo1, mpo3), distance(mpo2, mpo3))
+end
+
+function test_exp_law_ham_f(L)
+	J = 1.1
+	alpha = exp(-1)	
+
+	h1, observers = exp_law_hubbard_chain_mpo_f(L, J, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+
+	mpo1 = FiniteMPO(h1, alg=Deparallelise(tol=1.0e-11))
+	# println(bond_dimensions(mpo1))
+
+	h2, observers = exp_law_hubbard_chain_mpo_ham_f(L, J, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+
+	mpo2 = FiniteMPO(h2, L)
+	# println(bond_dimensions(mpo2))
+
+	# println(distance(mpo1, mpo2))
+	return distance(mpo1, mpo2)
+end
+
+function test_power_law_ham_f(L)
+	J = 1.1
+	alpha = -4.
+
+	h1, observers = power_law_hubbard_chain_mpo_f(L, J, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+
+	mpo1 = FiniteMPO(h1, alg=Deparallelise(tol=1.0e-11))
+	# println(bond_dimensions(mpo1))
+
+	h2, observers = power_law_hubbard_chain_mpo_ham_f(L, J, alpha, FiniteMPTools.spinal_fermion_site_ops_u1_su2())
+
+	mpo2 = FiniteMPO(h2, L)
+	# println(bond_dimensions(mpo2))
+
+	# println(distance(mpo1, mpo2))
+	return distance(mpo1, mpo2)
+end
+
 println("-----------test mpo hamiltonain-----------------")
 @testset "long range mpo hamiltonian" begin
 	for L in [5, 6]
 		@test compare_mpo_ham(L) < 1.0e-5
+	end
+	for L in [10, 11]
+		@test test_power_law_ham(L) < 1.0e-3
+		@test test_exp_law_ham_f(L) < 1.0e-3
+		@test test_power_law_ham_f(L) < 1.0e-3
 	end
 end
 
