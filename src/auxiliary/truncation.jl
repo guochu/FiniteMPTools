@@ -37,7 +37,7 @@ function TensorKit._truncate!(v, trunc::MPSTruncation, p::Real = 2)
 	s_3 = compute_size(v)
 	err = norm((err1, err2), p)
 
-	(verbosity > 0) && println("sum: $s_1 -> $s_2 -> $s_3, maximum $(trunc.dim), truncation error: absolute=$(err), relative=$(err/n).")
+	(verbosity > 0) && println("sum: $s_1 -> $s_2 -> $s_3, maximum $(trunc.dim), truncation error: abs=$(err), rel=$(err/n).")
 
 	return v, err
 end

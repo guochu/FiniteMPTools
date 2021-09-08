@@ -24,7 +24,7 @@ function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG1)
 		eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1]) ) )
+		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -53,7 +53,7 @@ function rightsweep!(m::ExcitedFiniteEnv, alg::DMRG1)
 		eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1]) ) )
+		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
@@ -161,7 +161,7 @@ function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG1S)
 
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1]) ) )
+		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -194,7 +194,7 @@ function rightsweep!(m::ExcitedFiniteEnv, alg::DMRG1S)
 		
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")	
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1]) ) )	
+		delta = max(delta, calc_galerkin(m, site) )	
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))

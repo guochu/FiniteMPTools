@@ -6,6 +6,15 @@ abstract type DMRGAlgorithm end
 	verbosity::Int = Defaults.verbosity
 end
 
+function calc_galerkin(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int)
+	mpsj = m.mps[site]
+	if dim(codomain(mpsj)) >= dim(domain(mpsj))
+		return norm(leftnull(mpsj)' * ac_prime(mpsj, m.mpo[site], m.hstorage[site], m.hstorage[site+1]))
+	else
+		return norm(permute(ac_prime(mpsj, m.mpo[site], m.hstorage[site], m.hstorage[site+1]), (1,), (2,3)) * rightnull(permute(mpsj, (1,), (2,3) ) )' )
+	end
+end
+
 # delayed evaluation of galerkin error.
 function leftsweep!(m::FiniteEnv, alg::DMRG1)
 	mpo = m.mpo
@@ -19,7 +28,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		# galerkin error
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -42,7 +51,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
 		# galerkin error
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
@@ -144,7 +153,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1S)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		# galerkin error
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
 		Q, R = leftorth!(vecs[1], alg=QR())
 		mps[site] = Q
@@ -173,7 +182,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
 		# galerkin error
-		delta = max(delta, norm(leftnull(mps[site])' * ac_prime(mps[site], mpo[site], hstorage[site], hstorage[site+1])) )
+		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be right canonical
 		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))

@@ -98,9 +98,8 @@ prodmps(ds::Vector{Int}, physectors::Vector{Int}) = prodmps(Float64, ds, physect
 
 
 function randommps(::Type{T}, physpaces::Vector{Int}; D::Int) where {T <: Number}
-	S = (T <: Real) ? ℝ : ℂ
-	physpaces = [S^b for b in physpaces]
-	virtualspace = S^D
+	physpaces = [ℂ^b for b in physpaces]
+	virtualspace = ℂ^D
 	return FiniteMPS(randn, T, physpaces, virtualspace)
 end
 randommps(physpaces::Vector{Int}; D::Int) = randommps(Float64, physpaces; D=D)
