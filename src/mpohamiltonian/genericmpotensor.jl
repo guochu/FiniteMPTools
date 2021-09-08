@@ -100,3 +100,18 @@ scalar_type(::Type{ExpoMPOTensor{S,M,T}}) where {S,M,T} = T
 
 
 
+function Base.setindex!(m::ExpoMPOTensor{S, M, T}, v, i::Int, j::Int) where {S, M, T}
+	(i > j) && throw(ArgumentError("not allowed to set the low triangular portion."))
+	if isa(v, Number)
+		m.Os[i, j] = convert(T, v)
+	elseif isa(v, MPOTensor)
+		((space(v, 1) == m.imspaces[i]) && (space(v, 3)' == m.omspaces[j])) || throw(SpaceMismatch())
+		m.Os[i, j] = convert(M, v) 
+	elseif isa(v, MPSBondTensor)
+		b_iden = isomorphism(Matrix{T}, m.imspaces[i], m.omspaces[j])
+		@tensor tmp[-1 -2; -3 -4] := b_iden[-1, -3] * v[-2, -4]
+		m.Os[i, j] = tmp
+	else
+		throw(ArgumentError("input should be scalar, MPOTensor or MPSBondTensor type."))
+	end
+end

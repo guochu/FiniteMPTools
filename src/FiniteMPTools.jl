@@ -136,13 +136,13 @@ include("utilities/boson_siteops.jl")
 include("utilities/fermion_siteops.jl")
 
 
-function _precompile_()
-	@assert precompile(spinal_fermion_site_ops_u1_su2, ())
-	@assert precompile(spinal_fermion_site_ops_u1_u1, ())
-	@assert precompile(spinal_fermion_site_ops_dense, ())
-	# ph = Rep[U₁×SU₂]((-0.5, 0)=>1, (0.5, 0)=>1, (0, 0.5)=>1)
-end
+# function _precompile_()
+# 	@assert precompile(spinal_fermion_site_ops_u1_su2, ())
+# 	@assert precompile(spinal_fermion_site_ops_u1_u1, ())
+# 	@assert precompile(spinal_fermion_site_ops_dense, ())
+# 	# ph = Rep[U₁×SU₂]((-0.5, 0)=>1, (0.5, 0)=>1, (0, 0.5)=>1)
+# end
 
-_precompile_()
+# _precompile_()
 
 end

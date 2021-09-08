@@ -56,6 +56,8 @@ function Base.getindex(m::AbstractSiteMPOTensor, j::Int, k::Int)
 		return r
 	end
 end 
+Base.lastindex(m::AbstractSiteMPOTensor) = lastindex(raw_data(m))
+Base.lastindex(m::AbstractSiteMPOTensor, i::Int) = lastindex(m, i)
 
 Base.keys(x::AbstractSiteMPOTensor) = Iterators.filter(a->contains(x, a[1],a[2]),Iterators.product(1:size(x, 1),1:size(x, 2)))
 opkeys(x::AbstractSiteMPOTensor) = Iterators.filter(a-> !isscal(x,a[1],a[2]),keys(x))
