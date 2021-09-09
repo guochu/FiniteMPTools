@@ -58,6 +58,7 @@ include("auxiliary/deparlise.jl")
 include("auxiliary/distance.jl")
 include("auxiliary/coeff.jl")
 include("auxiliary/periodicarray.jl")
+include("auxiliary/stable_svd.jl")
 include("auxiliary/others.jl")
 
 include("auxiliary/abelianmatrix.jl")

@@ -8,13 +8,13 @@ function svdcompress!(h::FiniteMPO; tol::Real=DeparalleliseTol, verbosity::Int=0
 	# we basicaly do not use a hard truncation D for MPO truncation
 	trunc = MPSTruncation(D=10000, ϵ=tol, verbosity=verbosity)
 	for i in 1:L-1
-		u, s, v, err = tsvd(h[i], (1,2,4), (3,), trunc=trunc)
+		u, s, v, err = stable_svd(h[i], (1,2,4), (3,), trunc=trunc)
 		h[i] = permute(u * s, (1,2), (4,3))
 		h[i+1] = @tensor tmp[-1 -2; -3 -4] := v[-1, 1] * h[i+1][1,-2,-3,-4]
 		push!(Errs, err)
 	end
 	for i in L:-1:2
-		u, s, v, err = tsvd(h[i], (1,), (2,3,4), trunc=trunc)
+		u, s, v, err = stable_svd(h[i], (1,), (2,3,4), trunc=trunc)
 		h[i] = permute(s * v, (1,2), (3,4))
 		h[i-1] = @tensor tmp[-1 -2; -3 -4] := h[i-1][-1, -2, 1, -4] * u[1, -3]
 		push!(Errs, err)

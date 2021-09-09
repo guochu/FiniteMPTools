@@ -128,6 +128,8 @@ function FiniteMPO(h::MPOHamiltonian{S, M, T}, L::Int) where {S, M, T}
 	return FiniteMPO(mpotensors)
 end
 
+FiniteMPO(h::MPOHamiltonian; len::Int=period(h)) = FiniteMPO(h, len)
+
 
 
 

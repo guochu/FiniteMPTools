@@ -85,7 +85,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG2)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")				
 		# prepare mps site tensor to be left canonical
-		u, s, v, err = tsvd!(vecs[1], trunc=trunc)
+		u, s, v, err = stable_svd!(vecs[1], trunc=trunc)
 		normalize!(s)
 		mps[site] = u
 		mps[site+1] = @tensor tmp[-1 -2; -3] := s[-1, 1] * v[1, -2, -3]
@@ -112,7 +112,7 @@ function rightsweep!(m::FiniteEnv, alg::DMRG2)
 		push!(Energies, eigvals[1])
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")	
 		# prepare mps site tensor to be right canonical
-		u, s, v, err = tsvd!(vecs[1], trunc=trunc)	
+		u, s, v, err = stable_svd!(vecs[1], trunc=trunc)	
 		normalize!(s)
 		mps[site] = @tensor tmp[-1 -2; -3] := u[-1, -2, 1] * s[1, -3]
 		mps[site+1] = permute(v, (1,2), (3,))

@@ -46,6 +46,8 @@ bond_dimensions(psi::FiniteDensityOperatorMPS) = bond_dimensions(psi.data)
 bond_dimension(psi::FiniteDensityOperatorMPS) = bond_dimension(psi.data)
 
 physical_spaces(psi::FiniteDensityOperatorMPS) = physical_spaces(psi.data)
+space_l(psi::FiniteDensityOperatorMPS) = space_l(psi.data)
+space_r(psi::FiniteDensityOperatorMPS) = space_r(psi.data)
 
 sector(psi::FiniteDensityOperatorMPS) = sector(psi.data)
 

@@ -210,7 +210,7 @@ function _otimes(x::FiniteMPS, y::AdjointFiniteMPS, f, trunc::TruncationScheme)
     phy_fusers = [phy_fuser]
 
     @tensor tmp[-1 -2; -3 -4] := left[-1, 1, 3] * m[1, 2, 3, 4, -3, -4] * conj(phy_fuser[2,4,-2])
-    u, s, v, err = tsvd!(tmp, trunc=trunc)
+    u, s, v, err = stable_svd!(tmp, trunc=trunc)
     r = Vector{typeof(u)}(undef, L)
     r[1] = u
     v = s * v
@@ -220,7 +220,7 @@ function _otimes(x::FiniteMPS, y::AdjointFiniteMPS, f, trunc::TruncationScheme)
         phy_fuser = isomorphism(Matrix{T}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4)) )
         push!(phy_fusers, phy_fuser)
         @tensor tmp[-1 -2; -3 -4] := v[-1, 1, 3] * m[1, 2, 3, 4, -3, -4] * conj(phy_fuser[2,4,-2])
-        u, s, v, err = tsvd!(tmp, trunc=trunc)
+        u, s, v, err = stable_svd!(tmp, trunc=trunc)
         r[i] = u
         v = s * v
     end
@@ -265,7 +265,7 @@ function _otimes(x::FiniteMPS, y::FiniteMPS, f, trunc::TruncationScheme)
     phy_fuser = isomorphism(Matrix{T}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4)) )
 
     @tensor tmp[-1 -2; -3 -4] := left[-1, 1, 3] * m[1, 2, 3, 4, -3, -4] * conj(phy_fuser[2,4,-2])
-    u, s, v, err = tsvd!(tmp, trunc=trunc)
+    u, s, v, err = stable_svd!(tmp, trunc=trunc)
     r = Vector{typeof(u)}(undef, L)
     r[1] = u
     v = s * v
@@ -274,7 +274,7 @@ function _otimes(x::FiniteMPS, y::FiniteMPS, f, trunc::TruncationScheme)
         m = f(x[i], y[i])
         phy_fuser = isomorphism(Matrix{T}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4)) )
         @tensor tmp[-1 -2; -3 -4] := v[-1, 1, 3] * m[1, 2, 3, 4, -3, -4] * conj(phy_fuser[2,4,-2])
-        u, s, v, err = tsvd!(tmp, trunc=trunc)
+        u, s, v, err = stable_svd!(tmp, trunc=trunc)
         r[i] = u
         v = s * v
     end
