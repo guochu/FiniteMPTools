@@ -8,7 +8,7 @@ function TensorKit.leftorth!(psi::FiniteMPS; trunc::TruncationScheme = TensorKit
 	errs = Float64[]
 	maybe_init_boundary_s!(psi)
 	for i in 1:L-1
-		u, s, v, err = stable_svd(psi[i], (1, 2), (3,), trunc=trunc)
+		u, s, v, err = stable_tsvd(psi[i], (1, 2), (3,), trunc=trunc)
 		psi[i] = u
 		@tensor v2[-1; -2] := s[-1, 1] * v[1, -2]
 		@tensor tmp[-1 -2; -3] := v2[-1, 1] * psi[i+1][1,-2,-3]
@@ -25,7 +25,7 @@ function TensorKit.rightorth!(psi::FiniteMPS; trunc::TruncationScheme = TensorKi
 	errs = Float64[]
 	maybe_init_boundary_s!(psi)
 	for i in L:-1:2
-		u, s, v, err = stable_svd(psi[i], (1,), (2, 3), trunc=trunc)
+		u, s, v, err = stable_tsvd(psi[i], (1,), (2, 3), trunc=trunc)
 		psi[i] = permute(v, (1,2), (3,))
 		@tensor u2[-1; -2] := u[-1, 1] * s[1, -2]
 		@tensor tmp[-1 -2; -3] := psi[i-1][-1, -2, 1] * u2[1, -3]

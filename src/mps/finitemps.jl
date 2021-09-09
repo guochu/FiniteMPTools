@@ -68,6 +68,16 @@ function Base.cat(psiA::FiniteMPS, psiB::FiniteMPS)
 	(space_r(psiA)' == space_l(psiB)) || throw(SpaceMismatch("can not cat two states with non compatible sectors."))
 	return FiniteMPS(vcat(raw_data(psiA), raw_data(psiB)))
 end
+function Base.complex(psi::FiniteMPS)
+	if scalar_type(psi) <: Real
+		data = [complex(item) for item in raw_data(psi)]
+		if svectors_uninitialized(psi)
+			return FiniteMPS(data)
+		else
+			return FiniteMPS(data, raw_singular_matrices(psi))
+		end
+	end
+end
 
 function _svectors_uninitialized(x)
 	isempty(x) && return true

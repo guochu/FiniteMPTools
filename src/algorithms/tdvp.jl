@@ -77,7 +77,7 @@ function _leftsweep!(m::FiniteEnv, alg::TDVP2)
 		(alg.verbosity > 2) && println("sweeping from left to right at bond: $site.")
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
 		twositemps, info = exponentiate(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), dt/2, twositemps, driver)
-		u, s, v, err = stable_svd!(twositemps, trunc=trunc)
+		u, s, v, err = stable_tsvd!(twositemps, trunc=trunc)
 		mps[site] = u
 
 		@tensor sitemps[-1 -2; -3] := s[-1, 1] * v[1, -2, -3]
@@ -89,7 +89,7 @@ function _leftsweep!(m::FiniteEnv, alg::TDVP2)
 	(alg.verbosity > 2) && println("sweeping from left to right at bond: $site.")
 	@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
 	twositemps, info = exponentiate(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), dt, twositemps, driver)
-	u, s, v, err = stable_svd!(twositemps, trunc=trunc)
+	u, s, v, err = stable_tsvd!(twositemps, trunc=trunc)
 	mps[site] = u * s
 	mps[site+1] = permute(v, (1,2), (3,))
 
@@ -112,7 +112,7 @@ function _rightsweep!(m::FiniteEnv, alg::TDVP2)
 
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
 		twositemps, info = exponentiate(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), dt/2, twositemps, driver)
-		u, s, v, err = stable_svd!(twositemps, trunc=trunc)
+		u, s, v, err = stable_tsvd!(twositemps, trunc=trunc)
 		mps[site] = u * s
 		mps[site+1] = permute(v, (1,2), (3,))
 		hstorage[site+1] = updateright(hstorage[site+2], mps[site+1], mpo[site+1], mps[site+1])

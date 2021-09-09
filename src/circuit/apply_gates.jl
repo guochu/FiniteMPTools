@@ -3,7 +3,7 @@
 function _swap_gate(svectorj1, mpsj1, svectorj2, mpsj2, trunc::TruncationScheme)
 	@tensor twositemps[-1 -3; -2 -4] := mpsj1[-1, -2, 1] * mpsj2[1, -3, -4]
 	@tensor twositemps1[-1 -2; -3 -4] := svectorj1[-1, 1] * twositemps[1, -2, -3, -4]
-	u, s, v, err = stable_svd!(twositemps1, trunc=trunc)
+	u, s, v, err = stable_tsvd!(twositemps1, trunc=trunc)
 	@tensor u[-1 -2; -3] = twositemps[-1,-2,1,2] * conj(v[-3,1,2])
 	return u, s, permute(v, (1,2), (3,)), err
 end
@@ -12,7 +12,7 @@ function bond_evolution(bondmpo, svectorj1, mpsj1, svectorj2, mpsj2, trunc::Trun
 	@tensor twositemps[-1 -2; -3 -4] :=  mpsj1[-1, 1, 3] * mpsj2[3, 2, -4] * bondmpo[-2,-3, 1,2]
 	@tensor twositemps1[-1 -2; -3 -4] := svectorj1[-1, 1] * twositemps[1, -2, -3, -4]
 	# to remove very small numbers
-	u, s, v, err = stable_svd!(twositemps1, trunc=trunc)
+	u, s, v, err = stable_tsvd!(twositemps1, trunc=trunc)
 	@tensor u[-1 -2; -3] = twositemps[-1,-2,1,2] * conj(v[-3,1,2])
 	return u, s, permute(v, (1,2), (3,)), err	
 end
@@ -22,11 +22,11 @@ function bond_evolution3(bondmpo, svectorj1, mpsj1, svectorj2, mpsj2, svectorj3,
 	@tensor threesitemps[-1 -2; -3 -4 -5] := mpsj1[-1,3,1] * mpsj2[1,4,2] * mpsj3[2,5,-5] * bondmpo[-2,-3,-4, 3,4,5]
 	@tensor threesitemps1[-1 -2; -3 -4 -5] := svectorj1[-1, 1] * threesitemps[1,-2,-3,-4,-5]
 	# threesitemps1.purge()
-	u, s, v, err1 = stable_svd!(threesitemps1, trunc=trunc)
+	u, s, v, err1 = stable_tsvd!(threesitemps1, trunc=trunc)
 	@tensor u[-1 -2; -3] = threesitemps[-1,-2,1,2,3] * conj(v[-3,1,2,3])
 	@tensor v1[-1 -2; -3 -4] := s[-1, 1] * v[1,-2,-3,-4]
 
-	u2, s2, v2, err2 = stable_svd!(v1, trunc=trunc)
+	u2, s2, v2, err2 = stable_tsvd!(v1, trunc=trunc)
 	@tensor u2[-1 -2; -3] = v[-1,-2,1,2] *conj(v2[-3,1,2])
 	return u, s, u2, s2, permute(v2, (1,2), (3,)), max(err1, err2)
 end
@@ -35,15 +35,15 @@ function bond_evolution4(bondmpo, svectorj1, mpsj1, svectorj2, mpsj2, svectorj3,
 	@tensor foursitemps[-1 -2; -3 -4 -5 -6] := mpsj1[-1,4,1] * mpsj2[1,5,2] * mpsj3[2,6,3] * mpsj4[3,7,-6] * bondmpo[-2,-3,-4,-5, 4,5,6,7]
 	@tensor foursitemps1[-1 -2; -3 -4 -5 -6] := svectorj1[-1, 1] * foursitemps[1,-2,-3,-4,-5,-6]
 
-	u, s, v, err1 = stable_svd!(foursitemps1, trunc=trunc)
+	u, s, v, err1 = stable_tsvd!(foursitemps1, trunc=trunc)
 	@tensor u[-1 -2; -3] = foursitemps[-1,-2,1,2,3,4] * conj(v[-3,1,2,3,4])
 	@tensor v1[-1 -2; -3 -4 -5] := s[-1, 1] * v[1, -2,-3,-4,-5]
 	# v1.purge()
-	u2, s2, v2, err2 = stable_svd!(v1, trunc=trunc)
+	u2, s2, v2, err2 = stable_tsvd!(v1, trunc=trunc)
 	@tensor u2[-1 -2; -3] = v[-1, -2, 1,2,3] * conj(v2[-3, 1,2,3])
 	v = v2
 	@tensor v1[-1 -2; -3 -4] := s2[-1, 1] * v[1,-2,-3,-4]
-	u3, s3, v3, err3 = stable_svd!(v1, trunc=trunc)
+	u3, s3, v3, err3 = stable_tsvd!(v1, trunc=trunc)
 	@tensor u3[-1 -2; -3] = v[-1,-2,1,2] * conj(v3[-3,1,2])
 	return u, s, u2, s2, u3, s3, permute(v3, (1,2), (3,)), max(err1, err2, err3)
 end

@@ -24,7 +24,7 @@ function left_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan
 	NR = rightnull(permute(mps[site], (1,), (2,3)))
 
 	intermediate = NL' * AC2 * NR'
-	(U1,S1,V1) = stable_svd(intermediate,trunc=trunc)
+	(U1,S1,V1) = stable_tsvd(intermediate,trunc=trunc)
 
 	a = NL * U1
 	b = TensorMap(zeros, space(a, 3)' ⊗ space(mps[site], 2), domain(mps[site]) )
@@ -32,7 +32,7 @@ function left_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan
 	a = catdomain(ACi, a)
 	b = permute(catcodomain(permute(mps[site], (1,), (2,3)), permute(b, (1,), (2,3))), (1,2), (3,))
 
-	u, s, v = stable_svd!(a, trunc=trunc)
+	u, s, v = stable_tsvd!(a, trunc=trunc)
 	mps[site-1] = u
 	mps[site] = @tensor tmp[-1 -2; -3] := s[-1, 1] * v[1, 2] * b[2,-2,-3]
 	updateleft!(m, site-1)
@@ -54,7 +54,7 @@ function right_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expa
 	NR = rightnull(permute(ACi, (1,), (2,3)))
 
 	intermediate = NL' * AC2 * NR'
-	(U1,S1,V1) = stable_svd(intermediate,trunc=trunc)
+	(U1,S1,V1) = stable_tsvd(intermediate,trunc=trunc)
 
     a = TensorMap(zeros,codomain(mps[site]),space(V1,1))
     b = V1*NR;
@@ -62,7 +62,7 @@ function right_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expa
 	a = catdomain(mps[site], a)
 	b = permute(catcodomain(permute(ACi, (1,), (2,3)), permute(b, (1,), (2,3))), (1,2), (3,))
 
-	u, s, v = stable_svd(b, (1,), (2,3), trunc=trunc)
+	u, s, v = stable_tsvd(b, (1,), (2,3), trunc=trunc)
 	mps[site+1] = permute(v, (1,2), (3,))
 	mps[site] = a * u * s
 	updateright!(m, site+1)

@@ -3,7 +3,6 @@
 using Test
 using TensorKit
 using FiniteMPTools
-using LinearAlgebra: norm, tr
 
 # function hubbard_chain(L, J, U, p)
 # 	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]

@@ -63,8 +63,9 @@ function randommps(::Type{T}, physpaces::Vector{S}; sector::Sector, D::Int) wher
 	mpstensors = Vector{Any}(undef, L)
 	trunc = truncdim(D)
 	for i in 1:L
+		virtualpaces[i+1] = infimum(fuse(virtualpaces[i] ⊗ physpaces[i]), virtualpaces[i+1])
 		tmp = TensorMap(randn, T, virtualpaces[i] ⊗ physpaces[i] ← virtualpaces[i+1])
-		u, s, v = stable_svd!(tmp, trunc=trunc)
+		u, s, v = stable_tsvd!(tmp, trunc=trunc)
 		mpstensors[i] = u
 		virtualpaces[i+1] = space(u, 3)'
 	end

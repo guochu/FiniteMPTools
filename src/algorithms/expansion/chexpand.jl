@@ -46,7 +46,7 @@ function left_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan
 	mps = m.mps
 	hstorage = m.env
 	a, b = subspace_expansion_left(expan, hstorage[site-1], mpo[site-1], mps[site-1], mps[site])
-	u, s, v = stable_svd!(a, trunc=trunc)
+	u, s, v = stable_tsvd!(a, trunc=trunc)
 	mps[site-1] = u
 	mps[site] = @tensor tmp[-1 -2; -3] := s[-1, 1] * v[1, 2] * b[2,-2,-3]
 	updateleft!(m, site-1)
@@ -56,7 +56,7 @@ function right_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expa
 	mps = m.mps
 	hstorage = m.env	
 	a, b = subspace_expansion_right(expan, hstorage[site+2], mpo[site+1], mps[site], mps[site+1])
-	u, s, v = stable_svd(b, (1,), (2,3), trunc=trunc)
+	u, s, v = stable_tsvd(b, (1,), (2,3), trunc=trunc)
 	mps[site+1] = permute(v, (1,2), (3,))
 	mps[site] = a * u * s
 	updateright!(m, site+1)
