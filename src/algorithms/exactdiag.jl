@@ -21,7 +21,7 @@ _default_len(h::FiniteMPO) = length(h)
 _default_len(h::MPOHamiltonian) = period(h)
 
 function exact_diagonalization(h::Union{FiniteMPO, MPOHamiltonian}; sector::Sector= first(sectors(oneunit(spacetype(h)))), 
-	len::Int=_default_len(h), ishermitian::Bool, num::Int=1, which::Symbol=:SR) 
+	len::Int=_default_len(h), ishermitian::Bool, num::Int=1, which=:SR) 
 	driver = ishermitian ? Lanczos() : Arnoldi()
 
 	physpaces = physical_spaces(h)

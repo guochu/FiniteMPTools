@@ -1,2 +1,2 @@
 
-abstract type AbstractEnv end
+abstract type AbstractCache end

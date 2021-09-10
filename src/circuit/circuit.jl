@@ -27,6 +27,7 @@ Base.isempty(x::QuantumCircuit) = isempty(raw_data(x))
 Base.firstindex(x::QuantumCircuit) = firstindex(raw_data(x))
 Base.lastindex(x::QuantumCircuit) = lastindex(raw_data(x))
 Base.reverse(x::QuantumCircuit) = QuantumCircuit(reverse(raw_data(x)))
+Base.repeat(x::QuantumCircuit, n::Int) = QuantumCircuit(repeat(raw_data(x), n))
 
 TensorKit.spacetype(::Type{QuantumCircuit{S}}) where {S <: EuclideanSpace} = S
 TensorKit.spacetype(x::QuantumCircuit) = spacetype(typeof(x))

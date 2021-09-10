@@ -15,6 +15,11 @@ end
 SuperOperatorBase(data::QuantumOperator{S, M}, fuser::F) where {S <: EuclideanSpace, M<:MPOTensor, F} = SuperOperatorBase{S, M, F}(data, fuser)
 SuperOperatorBase{S, M}(fuser::F) where {S <: EuclideanSpace, M<:MPOTensor, F} = SuperOperatorBase{S, M, F}(QuantumOperator{S, M}(), fuser)
 
+# function Base.getproperty(x::SuperOperatorBase, s::Symbol)
+# 	if s == :fusers
+		
+# 	end
+# end
 
 scalar_type(::Type{SuperOperatorBase{S, M}}) where {S <: EuclideanSpace, M <: MPOTensor} = scalar_type(M)
 scalar_type(x::SuperOperatorBase) = scalar_type(typeof(x))
@@ -89,7 +94,7 @@ end
 function add_dissipation!(m::SuperOperatorBase, x::QTerm)
 	add!(m.data, 2*superoperator(x, x, fuser=m.fuser))
 	x2 = x' * x
-	iden = id(x)
+	iden = -id(x)
 	add!(m.data, superoperator(x2, iden, fuser=m.fuser) )
 	add!(m.data, superoperator(iden, x2, fuser=m.fuser))
 end
@@ -100,7 +105,7 @@ function add_dissipation!(m::SuperOperatorBase, x::QuantumOperator)
 		for t2 in terms
 			add!(m.data, 2*superoperator(t1, t2, fuser=m.fuser))
 			x2 = t2' * t1
-			iden = id(x2)
+			iden = -id(x2)
 			add!(m.data, superoperator(x2, iden, fuser=m.fuser))
 			add!(m.data, superoperator(iden, x2, fuser=m.fuser))
 		end

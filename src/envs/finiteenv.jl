@@ -1,5 +1,4 @@
 
-
 function init_hstorage(mpo::Union{FiniteMPO, MPOHamiltonian}, mps::FiniteMPS, center::Int)
 	# (length(mpo) == length(mps)) || throw(DimensionMismatch())
 	# (mod(length(mps), period(mpo))==0) || throw(DimensionMismatch())
@@ -22,15 +21,15 @@ end
 init_hstorage_right(mpo::Union{FiniteMPO, MPOHamiltonian}, mps::FiniteMPS) = init_hstorage(mpo, mps, 1)
 
 
-struct FiniteEnv{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H} <: AbstractEnv
+struct ExpectationCache{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H} <: AbstractCache
 	mpo::M
 	mps::V
 	hstorage::H
 end
 
-environments(mpo::Union{FiniteMPO, MPOHamiltonian}, mps::FiniteMPS) = FiniteEnv(mpo, mps, init_hstorage_right(mpo, mps))
+environments(mpo::Union{FiniteMPO, MPOHamiltonian}, mps::FiniteMPS) = ExpectationCache(mpo, mps, init_hstorage_right(mpo, mps))
 
-function Base.getproperty(m::FiniteEnv, s::Symbol)
+function Base.getproperty(m::ExpectationCache, s::Symbol)
 	if s == :state
 		return m.mps
 	elseif s == :h
@@ -43,18 +42,18 @@ function Base.getproperty(m::FiniteEnv, s::Symbol)
 end
 
 
-function updateleft!(env::FiniteEnv, site::Int)
+function updateleft!(env::ExpectationCache, site::Int)
 	env.hstorage[site+1] = updateleft(env.hstorage[site], env.mps[site], env.h[site], env.mps[site])
 end
 
-function updateright!(env::FiniteEnv, site::Int)
+function updateright!(env::ExpectationCache, site::Int)
 	env.hstorage[site] = updateright(env.hstorage[site+1], env.mps[site], env.h[site], env.mps[site])
 end
 
 
 
 # for excited states
-struct ExcitedFiniteEnv{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H, C} <: AbstractEnv
+struct ProjectedExpectationCache{M<:Union{FiniteMPO, MPOHamiltonian}, V<:FiniteMPS, H, C} <: AbstractCache
 	mpo::M
 	mps::V
 	projectors::Vector{V}
@@ -77,10 +76,10 @@ function init_cstorage_right(psiA::FiniteMPS, psiB::FiniteMPS)
 	return cstorage
 end
 
-environments(mpo::Union{FiniteMPO, MPOHamiltonian}, mps::M, projectors::Vector{M}) where {M <: FiniteMPS} = ExcitedFiniteEnv(
+environments(mpo::Union{FiniteMPO, MPOHamiltonian}, mps::M, projectors::Vector{M}) where {M <: FiniteMPS} = ProjectedExpectationCache(
 	mpo, mps, projectors, init_hstorage_right(mpo, mps), [init_cstorage_right(mps, item) for item in projectors])
 
-function Base.getproperty(m::ExcitedFiniteEnv, s::Symbol)
+function Base.getproperty(m::ProjectedExpectationCache, s::Symbol)
 	if s == :state
 		return m.mps
 	elseif s == :h
@@ -95,7 +94,7 @@ function Base.getproperty(m::ExcitedFiniteEnv, s::Symbol)
 end
 
 
-function updateleft!(env::ExcitedFiniteEnv, site::Int)
+function updateleft!(env::ProjectedExpectationCache, site::Int)
 	env.hstorage[site+1] = updateleft(env.hstorage[site], env.mps[site], env.h[site], env.mps[site])
 	for l in 1:length(env.cstorages)
 	    env.cstorages[l][site+1] = updateleft(env.cstorages[l][site], env.mps[site], env.projectors[l][site])
@@ -103,7 +102,7 @@ function updateleft!(env::ExcitedFiniteEnv, site::Int)
 end
 
 
-function updateright!(env::ExcitedFiniteEnv, site::Int)
+function updateright!(env::ProjectedExpectationCache, site::Int)
 	env.hstorage[site] = updateright(env.hstorage[site+1], env.mps[site], env.h[site], env.mps[site])
 	for l in 1:length(env.cstorages)
 	    env.cstorages[l][site] = updateright(env.cstorages[l][site+1], env.mps[site], env.projectors[l][site])

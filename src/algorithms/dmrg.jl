@@ -6,7 +6,7 @@ abstract type DMRGAlgorithm end
 	verbosity::Int = Defaults.verbosity
 end
 
-function calc_galerkin(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int)
+function calc_galerkin(m::Union{ExpectationCache, ProjectedExpectationCache}, site::Int)
 	mpsj = m.mps[site]
 	try
 		return norm(leftnull(mpsj)' * ac_prime(mpsj, m.mpo[site], m.hstorage[site], m.hstorage[site+1]))
@@ -16,7 +16,7 @@ function calc_galerkin(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int)
 end
 
 # delayed evaluation of galerkin error.
-function leftsweep!(m::FiniteEnv, alg::DMRG1)
+function leftsweep!(m::ExpectationCache, alg::DMRG1)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -39,7 +39,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1)
 	return Energies, delta
 end
 
-function rightsweep!(m::FiniteEnv, alg::DMRG1)
+function rightsweep!(m::ExpectationCache, alg::DMRG1)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -71,7 +71,7 @@ end
 end
 
 
-function leftsweep!(m::FiniteEnv, alg::DMRG2)
+function leftsweep!(m::ExpectationCache, alg::DMRG2)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -98,7 +98,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG2)
 	return Energies, delta
 end
 
-function rightsweep!(m::FiniteEnv, alg::DMRG2)
+function rightsweep!(m::ExpectationCache, alg::DMRG2)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -136,7 +136,7 @@ end
 	expan::E = default_expansion()
 end
 
-function leftsweep!(m::FiniteEnv, alg::DMRG1S)
+function leftsweep!(m::ExpectationCache, alg::DMRG1S)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -164,7 +164,7 @@ function leftsweep!(m::FiniteEnv, alg::DMRG1S)
 	return Energies, delta
 end
 
-function rightsweep!(m::FiniteEnv, alg::DMRG1S)
+function rightsweep!(m::ExpectationCache, alg::DMRG1S)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -194,10 +194,10 @@ function rightsweep!(m::FiniteEnv, alg::DMRG1S)
 end
 
 """
-	compute!(env::AbstractEnv, alg::DMRGAlgorithm)
+	compute!(env::AbstractCache, alg::DMRGAlgorithm)
 	execute dmrg iterations
 """
-function compute!(env::AbstractEnv, alg::DMRGAlgorithm)
+function compute!(env::AbstractCache, alg::DMRGAlgorithm)
 	all_energies = Float64[]
 	iter = 0
 	delta = 2 * alg.tol

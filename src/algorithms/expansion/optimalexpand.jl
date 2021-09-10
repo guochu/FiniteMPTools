@@ -9,7 +9,7 @@ default_expansion() = OptimalExpansion()
 # interface
 
 # used when sweep from right to left, expand the left site
-function left_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan::OptimalExpansion, trunc::TruncationScheme)
+function left_expansion!(m::Union{ExpectationCache, ProjectedExpectationCache}, site::Int, expan::OptimalExpansion, trunc::TruncationScheme)
 	mpo = m.h
 	mps = m.mps
 	hstorage = m.env
@@ -39,7 +39,7 @@ function left_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan
 end
 
 # used when sweep from left to right, expand the right site
-function right_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan::OptimalExpansion, trunc::TruncationScheme)
+function right_expansion!(m::Union{ExpectationCache, ProjectedExpectationCache}, site::Int, expan::OptimalExpansion, trunc::TruncationScheme)
 	mpo = m.h
 	mps = m.mps
 	hstorage = m.env

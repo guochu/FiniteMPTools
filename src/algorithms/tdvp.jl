@@ -8,7 +8,7 @@ end
 
 TDVP1(; stepsize::Number, ishermitian::Bool=false, verbosity::Int=1) = TDVP1(stepsize, ishermitian, verbosity)
 
-function _leftsweep!(m::FiniteEnv, alg::TDVP1)
+function _leftsweep!(m::ExpectationCache, alg::TDVP1)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -31,7 +31,7 @@ function _leftsweep!(m::FiniteEnv, alg::TDVP1)
 	mps[site], info = exponentiate(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), dt, mps[site], driver)
 end
 
-function _rightsweep!(m::FiniteEnv, alg::TDVP1)
+function _rightsweep!(m::ExpectationCache, alg::TDVP1)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -64,7 +64,7 @@ TDVP2(;ishermitian::Bool=false, verbosity::Int=1, trunc::TruncationScheme=defaul
 
 
 
-function _leftsweep!(m::FiniteEnv, alg::TDVP2)
+function _leftsweep!(m::ExpectationCache, alg::TDVP2)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -98,7 +98,7 @@ function _leftsweep!(m::FiniteEnv, alg::TDVP2)
 end
 
 
-function _rightsweep!(m::FiniteEnv, alg::TDVP2)
+function _rightsweep!(m::ExpectationCache, alg::TDVP2)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -132,7 +132,7 @@ TDVP1S(;ishermitian::Bool=false, verbosity::Int=1, stepsize::Number, trunc::Trun
 	stepsize, ishermitian, trunc, expan, verbosity)
 
 
-function _leftsweep!(m::FiniteEnv, alg::TDVP1S)
+function _leftsweep!(m::ExpectationCache, alg::TDVP1S)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -158,7 +158,7 @@ function _leftsweep!(m::FiniteEnv, alg::TDVP1S)
 	mps[site], info = exponentiate(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), dt, mps[site], driver)
 end
 
-function _rightsweep!(m::FiniteEnv, alg::TDVP1S)
+function _rightsweep!(m::ExpectationCache, alg::TDVP1S)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -188,7 +188,7 @@ end
 
 
 
-function sweep!(m::FiniteEnv, alg::TDVPAlgorithm; kwargs...)
+function sweep!(m::ExpectationCache, alg::TDVPAlgorithm; kwargs...)
 	_leftsweep!(m, alg; kwargs...)
 	_rightsweep!(m, alg; kwargs...)
 end

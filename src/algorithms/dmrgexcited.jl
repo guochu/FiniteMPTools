@@ -9,7 +9,7 @@ function _project!(y, projectors)
 end
 
 
-function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG1)
+function leftsweep!(m::ProjectedExpectationCache, alg::DMRG1)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -38,7 +38,7 @@ function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG1)
 	return Energies, delta
 end
 
-function rightsweep!(m::ExcitedFiniteEnv, alg::DMRG1)
+function rightsweep!(m::ProjectedExpectationCache, alg::DMRG1)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -72,7 +72,7 @@ function _c2_prime_2(x1::MPSTensor{S}, x2::MPSTensor{S}, cleft::AbstractTensorMa
 end
 
 
-function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG2)
+function leftsweep!(m::ProjectedExpectationCache, alg::DMRG2)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -106,7 +106,7 @@ function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG2)
 end
 
 
-function rightsweep!(m::ExcitedFiniteEnv, alg::DMRG2)
+function rightsweep!(m::ProjectedExpectationCache, alg::DMRG2)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -141,7 +141,7 @@ function rightsweep!(m::ExcitedFiniteEnv, alg::DMRG2)
 end
 
 
-function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG1S)
+function leftsweep!(m::ProjectedExpectationCache, alg::DMRG1S)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -175,7 +175,7 @@ function leftsweep!(m::ExcitedFiniteEnv, alg::DMRG1S)
 	return Energies, delta
 end
 
-function rightsweep!(m::ExcitedFiniteEnv, alg::DMRG1S)
+function rightsweep!(m::ProjectedExpectationCache, alg::DMRG1S)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
@@ -209,7 +209,7 @@ function rightsweep!(m::ExcitedFiniteEnv, alg::DMRG1S)
 end
 
 
-function sweep!(m::Union{FiniteEnv, ExcitedFiniteEnv}, alg::DMRGAlgorithm=DMRG2(trunc=default_truncation(spacetype(m.mps))); kwargs...)
+function sweep!(m::Union{ExpectationCache, ProjectedExpectationCache}, alg::DMRGAlgorithm=DMRG2(trunc=default_truncation(spacetype(m.mps))); kwargs...)
 	Energies1, delta1 = leftsweep!(m, alg; kwargs...)
 	Energies2, delta2 = rightsweep!(m, alg; kwargs...)
 	return vcat(Energies1, Energies2), max(delta1, delta2)

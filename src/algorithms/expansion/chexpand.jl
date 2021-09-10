@@ -41,7 +41,7 @@ end
 
 
 # interface
-function left_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan::CHExpansion, trunc::TruncationScheme)
+function left_expansion!(m::Union{ExpectationCache, ProjectedExpectationCache}, site::Int, expan::CHExpansion, trunc::TruncationScheme)
 	mpo = m.h
 	mps = m.mps
 	hstorage = m.env
@@ -51,7 +51,7 @@ function left_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan
 	mps[site] = @tensor tmp[-1 -2; -3] := s[-1, 1] * v[1, 2] * b[2,-2,-3]
 	updateleft!(m, site-1)
 end
-function right_expansion!(m::Union{FiniteEnv, ExcitedFiniteEnv}, site::Int, expan::CHExpansion, trunc::TruncationScheme)
+function right_expansion!(m::Union{ExpectationCache, ProjectedExpectationCache}, site::Int, expan::CHExpansion, trunc::TruncationScheme)
 	mpo = m.h
 	mps = m.mps
 	hstorage = m.env	

@@ -39,3 +39,5 @@ function spin_matrices(s::Union{Rational{Int},Int})
     end
     return Dict("x"=>Sx, "y"=>Sy, "z"=>Sz)
 end
+
+

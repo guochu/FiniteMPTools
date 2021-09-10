@@ -216,7 +216,7 @@ function Base.:*(x::QTerm, y::AdjointQTerm)
 end
 function Base.:*(x::AdjointQTerm, y::QTerm)
 	pos, opx, opy = _coerce_qterms(x.parent, y)
-	v = _mult_a_n(opx, opy, oneunit(spacetype(x))')
+	v = _mult_a_n(opx, opy, oneunit(spacetype(y))')
 	return QTerm(pos, v, coeff=coeff(x)*coeff(y))
 end
 function Base.:*(x::QTerm, y::QTerm)
