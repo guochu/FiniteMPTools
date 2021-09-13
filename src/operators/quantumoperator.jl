@@ -246,7 +246,7 @@ function _absorb_one_bodies(physpaces::Vector, h::Dict)
 		else
 			hj = get(r, key, nothing)
 			if hj == nothing
-				r[key] = value
+				r[key] = copy(value)
 			else
 				append!(r[key], value)
 			end

@@ -45,15 +45,18 @@ function exact_diagonalization(h::Union{FiniteMPO, MPOHamiltonian}; sector::Sect
 	return vals[1:num], states
 end
 
-
-function exact_timeevolution(h::Union{FiniteMPO, MPOHamiltonian}, t::Number, psi::ExactFiniteMPS; ishermitian::Bool)
+function _exact_timeevolution_util(h::Union{FiniteMPO, MPOHamiltonian}, t::Number, psi::ExactFiniteMPS, left, right; ishermitian::Bool)
 	driver = ishermitian ? Lanczos() : Arnoldi()
 	middle_site = psi.center
-	left, right = init_h_center(h, psi)
 	mpsj, info = exponentiate(x->ac_prime(x, h[middle_site], left, right), t, psi[middle_site], driver)
 	(info.converged >= 1) || error("fail to converge.")
 	psi_2 = copy(psi)
 	psi_2[middle_site] = mpsj
 	return psi_2
+end
+
+function exact_timeevolution(h::Union{FiniteMPO, MPOHamiltonian}, t::Number, psi::ExactFiniteMPS; ishermitian::Bool)
+	left, right = init_h_center(h, psi)
+	return _exact_timeevolution_util(h, t, psi, left, right; ishermitian=ishermitian)
 end
 

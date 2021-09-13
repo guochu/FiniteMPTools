@@ -37,7 +37,7 @@ export SubspaceExpansionScheme, CHExpansion, OptimalExpansion
 export DMRGAlgorithm, TDVPAlgorithm
 export ExactFiniteMPS, exact_diagonalization, exact_timeevolution
 # time evolve stepper
-export timeevo!, AbstractStepper, TEBDStepper, TDVPStepper, TEBDCache, TDVPCache
+export timeevo!, AbstractStepper, TEBDStepper, TDVPStepper, change_tspan_dt, TEBDCache, TDVPCache, timeevo_cache, correlation_2op_1t, exact_correlation_2op_1t
 
 # utilities
 export boson_matrices, spin_half_matrices, spin_matrices
@@ -133,6 +133,7 @@ include("algorithms/dmrg.jl")
 include("algorithms/dmrgexcited.jl")
 include("algorithms/tdvp.jl")
 include("algorithms/timeevo.jl")
+include("algorithms/twotimecorrs.jl")
 include("algorithms/exactdiag.jl")
 
 # utilities

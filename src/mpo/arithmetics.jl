@@ -119,7 +119,7 @@ function Base.:*(h::FiniteMPO, psi::FiniteMPS)
 end
 Base.:*(h::FiniteMPO, psi::FiniteDensityOperatorMPS) = FiniteDensityOperatorMPS(h * psi.data, psi.fusers, psi.I)
 Base.:*(h::AdjointFiniteMPO, psi::AdjointFiniteMPS) = (h.parent * psi.parent)'
-
+Base.:*(h::AdjointFiniteMPO, psi::FiniteMPS) = FiniteMPO(h) * psi
 
 # normal normal mult of two chains of MPOTensor
 function _mult_n_n(a::Vector{<:MPOTensor}, b::Vector{<:MPOTensor})
@@ -163,10 +163,11 @@ function mpo_tensor_adjoint(vj::MPOTensor)
     return tmp
 end
 
-function FiniteMPO(h::AdjointFiniteMPO)
-    isstrict(h) || throw(ArgumentError("not strict operator allowed."))
-    return FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
-end  
+# function FiniteMPO(h::AdjointFiniteMPO)
+#     isstrict(h) || throw(ArgumentError("not strict operator allowed."))
+#     return FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
+# end  
+FiniteMPO(h::AdjointFiniteMPO) = FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
 
 # mult adjoint and normal
 function _mult_a_n(a::Vector{<:MPOTensor}, hB::Vector{<:MPOTensor}, right::EuclideanSpace)

@@ -57,7 +57,7 @@ absorb_one_bodies(h::SuperOperatorBase) = SuperOperatorBase(h.data)
 
 """
 	superoperator(x::Vector, y::Vector; fuser=⊠)
-	utility function to return x ⊗ conj(y)
+	utility function to return x ⊗ conj(y) |ρ⟩ = x ρ y^†
 	basically a copy from ⊗(x, y) or ⊠(x, y), 
 """
 function superoperator(x::QTerm, y::QTerm; fuser=⊠) 
