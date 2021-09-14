@@ -31,6 +31,8 @@ Base.:*(x::Coefficient{<:Function}, y::Coefficient{<:Function}) = Coefficient(z-
 
 Base.:/(x::Coefficient{<:Number}, y::Number) = Coefficient(value(x) / y)
 Base.:/(x::Coefficient{<:Function}, y::Number) = Coefficient(z->value(x)(z)/y)
+Base.:/(x::Number, y::Coefficient{<:Number}) = Coefficient(x / value(y))
+Base.:/(x::Number, y::Coefficient(<:Function)) = Coefficient(z->x/(value(y)(z)))
 
 Base.:-(x::Coefficient{<:Number}) = Coefficient(-value(x))
 Base.:-(x::Coefficient{<:Function}) = Coefficient(z->-value(x)(z))
