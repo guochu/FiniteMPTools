@@ -93,7 +93,7 @@ function _merge_spaces(x, y)
 	resize!(r, L)
 	for i in 1:L
 		if i <= length(y)
-			if ismissing(r[i])
+			if (!isassigned(r, i)) || ismissing(r[i])
 				if !ismissing(y[i])
 					r[i] = y
 				end
