@@ -95,7 +95,7 @@ function _merge_spaces(x, y)
 		if i <= length(y)
 			if (!isassigned(r, i)) || ismissing(r[i])
 				if !ismissing(y[i])
-					r[i] = y
+					r[i] = y[i]
 				end
 			else
 				if !ismissing(y[i])
