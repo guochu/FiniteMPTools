@@ -1,4 +1,4 @@
-push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
+# push!(LOAD_PATH, dirname(Base.@__DIR__) * "/src")
 
 using Test
 using TensorKit

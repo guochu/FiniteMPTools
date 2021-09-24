@@ -237,7 +237,7 @@ function make_step!(h::QuantumOperator, stepper::TDVPStepper, state::FiniteMPS, 
 end
 
 function TDVPCache(h::QuantumOperator, stepper::TDVPStepper, state::FiniteMPS) 
-	is_constant(h) ? HomogeousTDVPCache(h, stepper, state) : InhomogenousTDVPCache(h, stepper)
+	is_constant(h) ? HomogeousTDVPCache(h, stepper, state) : InhomogenousTDVPCache(h, stepper, state)
 end
 TDVPCache(h::SuperOperatorBase, stepper::TDVPStepper, state::FiniteDensityOperatorMPS) = TDVPCache(h.data, stepper, state.data)
 
