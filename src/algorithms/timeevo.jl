@@ -214,7 +214,7 @@ end
 # 	return state
 # end 
 
-mutable struct InhomogenousHamTDVPCache{H<:QuantumOperator, E<:ExpectationCache, S<:TDVPStepper}
+mutable struct InhomogenousHamTDVPCache{H<:QuantumOperator, S<:TDVPStepper}
 	h::H
 	stepper::S
 end
