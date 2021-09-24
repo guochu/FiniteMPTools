@@ -225,7 +225,7 @@ function recalculate!(x::InhomogenousHamTDVPCache, h::QuantumOperator, stepper::
 	return InhomogenousHamTDVPCache(h, stepper)
 end
 
-function make_step!(h::QuantumOperator, stepper::TDVPStepper, state::FiniteMPS, x::InhomogenousTEBDCache)
+function make_step!(h::QuantumOperator, stepper::TDVPStepper, state::FiniteMPS, x::InhomogenousHamTDVPCache)
 	x = recalculate!(x, h, stepper, state)
 	t_start = stepper.tspan[1]
 	for i in 1:stepper.n
