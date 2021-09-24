@@ -230,7 +230,8 @@ function make_step!(h::QuantumOperator, stepper::TDVPStepper, state::FiniteMPS, 
 	t_start = stepper.tspan[1]
 	for i in 1:stepper.n
 		t = t_start + (i-1) * stepper.stepsize + stepper.stepsize/2
-		env = environments(x.h(t), state)
+		mpo = FiniteMPO(x.h(t), alg=SVDCompression())
+		env = environments(mpo, state)
 		sweep!(env, stepper.alg)
 	end
 	return state, x
