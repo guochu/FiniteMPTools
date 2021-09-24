@@ -21,8 +21,8 @@ function _unitary_tt_corr_util(h, A, B, C, state, times, stepper)
 	end
 
 	result = []
-	for i in 1:length(times)
-		local cache_left, cache_right		
+	local cache_left, cache_right	
+	for i in 1:length(times)	
 		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
 		if abs(tspan[2] - tspan[1]) > 0.
 			stepper = change_tspan_dt(stepper, tspan=tspan)
@@ -55,8 +55,8 @@ function _open_tt_corr_util(h, A, B, C, state, times, stepper)
 	end
 	result = []
 	# cache_right = timeevo_cache(h, stepper, state_right)
-	for i in 1:length(times)
-		local cache_right	
+	local cache_right
+	for i in 1:length(times)	
 		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
 		if tspan[2] - tspan[1] > 0.
 			stepper = change_tspan_dt(stepper, tspan=tspan)
@@ -131,7 +131,6 @@ function _exact_open_tt_corr_util(h, A, B, C, state, times)
 
 	result = []
 	for i in 1:length(times)
-		local cache_right	
 		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
 		if tspan[2] - tspan[1] > 0.
 			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=false)
