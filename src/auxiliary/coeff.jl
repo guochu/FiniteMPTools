@@ -46,6 +46,10 @@ Base.sqrt(x::Coefficient{<:Function}) = Coefficient(z->sqrt(value(x)(z)))
 (op::Coefficient{<:Number})(t::Number) = value(op)
 (op::Coefficient{<:Function})(t::Number) = value(op)(t)
 
+"""
+	is_constant(x)
+	check if the object x is a pure constant or contrans function 
+"""
 is_constant(x::Coefficient{<:Number}) = true
 is_constant(x::Coefficient{<:Function}) = false
 
@@ -56,6 +60,10 @@ Base.isapprox(x::Coefficient, y::Coefficient) = false
 Base.isapprox(x::Coefficient{<:Function}, y::Coefficient{<:Function}) = (x == y)
 Base.isapprox(x::Coefficient{<:Number}, y::Coefficient{<:Number}; kwargs...) = isapprox(value(x), value(y); kwargs...)
 
+"""
+	scalar_type(x)
+	return the scale type of x, which must be a subtype of Number.
+"""
 scalar_type(x::Coefficient{T}) where {T<:Number} = T
 scalar_type(x::Coefficient{<:Function}) = begin
     m = value(x)(1.)
@@ -63,8 +71,8 @@ scalar_type(x::Coefficient{<:Function}) = begin
 end
 
 """
-	is_zero(x::Coefficient{T}) where {T<:Number}
-	used to elemented trivial blocks
+	is_zero(x) 
+	check if x is zero.
 """
 is_zero(x::Coefficient{T}) where {T<:Number} = value(x) == zero(T)
 is_zero(x::Coefficient{<:Function}) = false

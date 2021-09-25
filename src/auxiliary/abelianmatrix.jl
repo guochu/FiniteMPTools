@@ -19,13 +19,16 @@ function _is_abelian_sector(::Type{C}) where {C <: Sector}
 	return false
 end
 
+"""
+	struct AbelianMatrix{S <: EuclideanSpace, T <: Number, Ic <: Sector} 
+Struct to hold matricies which are labeled with U(1) indices, note that the quantum numbers does not have to be conserved, compared to TensorMap.
+This is for convenience to construct U(1) MPO tensors
+"""
 struct AbelianMatrix{S <: EuclideanSpace, T <: Number, Ic <: Sector} 
 	physpace::S
 	data::Dict{Tuple{Ic, Ic}, Matrix{T}}
 
-"""
-	AbelianMatrix
-"""
+
 function AbelianMatrix{S, T, C}(physpace::S, data::AbstractDict) where {S <: GradedSpace, T <: Number, C <: Sector}
 	isdual(physpace) && throw(ArgumentError("dual space not allowed."))
 	_is_abelian_sector(C) || throw(ArgumentError("Abelian sector expected."))

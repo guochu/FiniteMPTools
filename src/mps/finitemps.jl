@@ -5,6 +5,17 @@
 # It is the user's resonse to make it canonical 
 # We will always use the (approximate) right canonical form, in DMRG the mixed form will be handled internally,
 # after each sweep the resulting mps will be right canonical
+
+
+"""
+	struct FiniteMPS{A<:MPSTensor, B<:MPSBondTensor}
+Finite Matrix Product States, which stores a chain of rank-3 tensors (MPS site tensors) and another chain of rank-2 tensors (MPS bond tensors)
+Multiply all the site tensors will result in the global quantum state. The bond tensors are stored for convience, which could be (but not necessary)
+the singular matrices on each bond. The number of bond tensors is equal to the number of site tensors plus 1 (two trivial bond tensors are added on 
+the boundaries). Explicit storage of those bond tensors are useful to compute the local observables (only if they correctly correspond to the singular
+matrices) and control the truncation error. the function canonocalize! is used to prepare an arbitrary MPS into right-canonical form, with the 
+correct bond tensors. 
+"""
 struct FiniteMPS{A<:MPSTensor, B<:MPSBondTensor} <: AbstractMPS
 	data::Vector{A}
 	svectors::Vector{B}
@@ -194,8 +205,8 @@ end
 
 """
 	iscanonical(psi::FiniteMPS) 
-	check if the state is right-canonical, the singular vectors are also checked that whether there are the correct Schmidt numbers or not
-	This form is useful for time evolution for stability issue and also efficient for computing observers of unitary systems
+check if the state is right-canonical, the singular vectors are also checked that whether there are the correct Schmidt numbers or not
+This form is useful for time evolution for stability issue and also efficient for computing observers of unitary systems
 """
 iscanonical(psi::FiniteMPS; kwargs...) = is_right_canonical(psi; kwargs...)
 
