@@ -4,6 +4,10 @@
 # fuser is used to go back to an MPO 
 # I is ⟨I| which is used to compute expectations
 # Thus default constructor should never be directly used by users
+
+"""
+	struct FiniteDensityOperatorMPS{A<:MPSTensor, B<:MPSBondTensor}
+"""
 struct FiniteDensityOperatorMPS{A<:MPSTensor, B<:MPSBondTensor} <: AbstractMPS
 	data::FiniteMPS{A, B}
 	fusers::Vector{A}

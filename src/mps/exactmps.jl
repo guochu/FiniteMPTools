@@ -1,5 +1,9 @@
 
-
+"""
+	struct ExactFiniteMPS{M<:MPSTensor}
+Quantum state exactly represented as MPS without any loss of precision. The center site tensor contains all the 
+information and all the other site tensors are simply isomorphism.
+"""
 struct ExactFiniteMPS{M<:MPSTensor} <: AbstractMPS
 	data::Vector{M}
 	center::Int
@@ -78,6 +82,15 @@ function _exactmps_side_tensors(::Type{T}, physpaces::Vector{S}, sector::Sector=
 	return mpstensors, left, right, middle_site
 end
 
+"""
+	ExactFiniteMPS(f, ::Type{T}, physpaces::Vector{S}; sector::Sector= first(sectors(oneunit(S))))
+	ExactFiniteMPS(psi::FiniteMPS)
+	ExactFiniteMPS(psi::FiniteDensityOperatorMPS) = ExactFiniteMPS(psi.data)
+constructors of ExactFiniteMPS.
+1) From a given sector.
+2) From a finite MPS.
+3) From a density operator in MPS form.
+"""
 function ExactFiniteMPS(f, ::Type{T}, physpaces::Vector{S}; sector::Sector= first(sectors(oneunit(S)))) where {T <:Number, S <: EuclideanSpace}
 	mpstensors, left, right, middle_site = _exactmps_side_tensors(T, physpaces, sector)
 	mpstensors[middle_site] = TensorMap(f, T, left ⊗ physpaces[middle_site], right)

@@ -15,6 +15,11 @@ distance(hA::FiniteMPO, hB::FiniteMPO) = _distance(hA, hB)
 
 
 # get identity operator
+
+"""
+    TensorKit.id(m::FiniteMPO)
+Retuen an identity MPO from a given MPO
+"""
 TensorKit.id(m::FiniteMPO) = FiniteMPO([id(Matrix{scalar_type(m)}, oneunit(spacetype(m)) ⊗ space(item, 2) ) for item in raw_data(m)])
 
 
@@ -254,7 +259,9 @@ l_LL(psiA::M, h::FiniteMPO, psiB::M) where {M <: Union{FiniteMPS, ExactFiniteMPS
 
 """
     expectation(psiA::FiniteMPS, h::FiniteMPO, psiB::FiniteMPS)
-    compute < psiA | h | psiB >
+    expectation(h::FiniteMPO, psi::FiniteMPS) = expectation(psi, h, psi)
+    expectation(h::FiniteMPO, psi::FiniteDensityOperatorMPS) = expectation(psi.I, h, psi.data)
+compute < psiA | h | psiB >
 """
 function expectation(psiA::FiniteMPS{<:MPSTensor{S}}, h::FiniteMPO{<:MPOTensor{S}}, psiB::FiniteMPS{<:MPSTensor{S}}) where {S <: EuclideanSpace}
     (length(psiA) == length(h) == length(psiB)) || throw(DimensionMismatch())
@@ -342,7 +349,7 @@ end
 
 """
     TensorKit.:⊗(x::FiniteMPO, y::Union{FiniteMPO, ConjugateFiniteMPO}) 
-    x⊗y or x⊗conj(y)
+x⊗y or x⊗conj(y)
 """
 TensorKit.:⊗(x::FiniteMPO, y::Union{FiniteMPO, ConjugateFiniteMPO}) = _otimes(x, y, ⊗)
 TensorKit.:⊗(x::Union{AdjointFiniteMPO, ConjugateFiniteMPO}, args...) = error("A† ⊗ B not defined, only A ⊗ B and A ⊗ B† allowed.")

@@ -125,16 +125,17 @@ function singular_matrix_type(::Type{A}) where {S<:EuclideanSpace, A <: MPSTenso
 end
 
 """
-	FiniteMPS
+	FiniteMPS{A, B}(mpstensors::Vector)
 
-	site tensor convention:
-	i mean in arrow, o means out arrow
-	    o 
-	    |
-	o-1 2 3-i	
-	The left boundary is always vacuum. More, we only allow mps is be strict, namely
-	one MPS only has a fixed total quantum number (thus the right boundary has a single sector with dimension 1)
-	If a non-strict MPO acts on MPS, it results in a list of MPSs, each with a fixed quantum number
+Entrance constructor for finite MPS
+site tensor convention:
+i mean in arrow, o means out arrow
+    o 
+    |
+o-1 2 3-i
+The quantum number follows from right to left.	
+We only allow mps is be strict, namey the left boundary and the right boundary has a single sector with dimension 1).
+The left boundary in nost of the cases is chosen to be the vacuum.
 """
 function FiniteMPS{A, B}(mpstensors::Vector) where {A<:MPSTensor, B<:MPSBondTensor}
 	isempty(mpstensors) && error("no input mpstensors.")
@@ -143,9 +144,10 @@ function FiniteMPS{A, B}(mpstensors::Vector) where {A<:MPSTensor, B<:MPSBondTens
 	T = real(eltype(A))
 	return FiniteMPS{A, B}(mpstensors, Vector{singular_matrix_type(A)}(undef, length(mpstensors)+1))
 end
+
 """
 	FiniteMPS(mpstensors::Vector{A}) where {A <: MPSTensor}
-	constructor entrance
+construct finite MPS from a list of site tensors.
 """
 FiniteMPS(mpstensors::Vector{A}) where {A <: MPSTensor} = FiniteMPS{A, singular_matrix_type(A)}(mpstensors)
 
@@ -204,15 +206,16 @@ function is_right_canonical(psi::FiniteMPS; kwargs...)
 end
 
 """
-	iscanonical(psi::FiniteMPS) 
+	iscanonical(psi::FiniteMPS; kwargs...) = is_right_canonical(psi; kwargs...)
 check if the state is right-canonical, the singular vectors are also checked that whether there are the correct Schmidt numbers or not
 This form is useful for time evolution for stability issue and also efficient for computing observers of unitary systems
 """
 iscanonical(psi::FiniteMPS; kwargs...) = is_right_canonical(psi; kwargs...)
 
 """
-	bond_dimension(psi::FiniteMPS, bond::Int)
-	return bond dimension as an integer
+	bond_dimension(psi::FiniteMPS[, bond::Int])
+	bond_dimension(h::FiniteMPO[, bond::Int])
+return bond dimension at the given bond, or return the largest bond dimension of all bonds.
 """
 bond_dimension(psi::FiniteMPS, bond::Int) = begin
 	((bond >= 1) && (bond < length(psi))) || throw(BoundsError())
@@ -221,6 +224,11 @@ end
 bond_dimensions(psi::FiniteMPS) = [bond_dimension(psi, i) for i in 1:length(psi)-1]
 bond_dimension(psi::FiniteMPS) = maximum(bond_dimensions(psi))
 
+"""
+	physical_spaces(psi::FiniteMPS)
+	physical_spaces(psi::FiniteMPO) 
+Return all the physical spaces of FiniteMPS or FiniteMPO
+"""
 physical_spaces(psi::FiniteMPS) = [space(item, 2) for item in raw_data(psi)]
 
 function max_virtual_spaces(physpaces::Vector{S}, sector::Sector) where {S <: EuclideanSpace}

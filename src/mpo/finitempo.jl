@@ -20,24 +20,30 @@ end
 
 
 # another MPO object is needed to support non-number conserving operators, such a
+
+"""
+	FiniteMPO{A <: MPOTensor}
+Finite Matrix Product Operator which stores a chain of rank-4 site tensors.
+"""
 struct FiniteMPO{A <: MPOTensor} <: AbstractMPO
 	data::Vector{A}
 
 """
-	FiniteMPO, which only supports strictly quantum number conserving operators
+	FiniteMPO{A}(mpotensors::Vector)
+Constructor entrance for FiniteMPO, which only supports strictly quantum number conserving operators
 
-	site tensor convention:
-	i mean in arrow, o means out arrow
-	    o 
-	    |
-	    2
-	o-1   3-i
-		4
-		|
-		i
-	The left and right boundaries are always vacuum.
-	The case that the right boundary is not vacuum corresponds to operators which do not conserve quantum number, 
-	such as a†, this case is implemented with another MPO object.
+site tensor convention:
+i mean in arrow, o means out arrow
+    o 
+    |
+    2
+o-1   3-i
+	4
+	|
+	i
+The left and right boundaries are always vacuum.
+The case that the right boundary is not vacuum corresponds to operators which do not conserve quantum number, 
+such as a†, this case is implemented with another MPO object.
 """
 function FiniteMPO{A}(mpotensors::Vector) where {A<:MPOTensor}
 	isempty(mpotensors) && error("no input mpstensors.")
@@ -99,10 +105,6 @@ l_LL(state::FiniteMPO{T}) where T = isomorphism(Matrix{eltype(T)}, space_l(state
 
 isstrict(h::FiniteMPO) = space_r(h)' == oneunit(space_r(h))
 
-"""
-	bond_dimension(h::FiniteMPO, bond::Int)
-	return bond dimension as an integer
-"""
 bond_dimension(h::FiniteMPO, bond::Int) = begin
 	((bond >= 1) && (bond < length(h))) || throw(BoundsError())
 	dim(space(h[bond], 3))

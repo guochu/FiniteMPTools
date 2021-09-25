@@ -16,7 +16,16 @@ function LinearAlgebra.norm(psi::FiniteMPS; iscanonical::Bool=false)
 end
 LinearAlgebra.norm(psi::AdjointFiniteMPS) = norm(psi.parent)
 
+"""
+    distance(a, b)
+Square of Euclidean distance between a and b.
+"""
 distance2(a::FiniteMPS, b::FiniteMPS) = _distance2(a, b)
+
+"""
+    distance(a, b)
+Euclidean distance between a and b.
+"""
 distance(a::FiniteMPS, b::FiniteMPS) = _distance(a, b)
 
 
@@ -101,7 +110,7 @@ end
 
 """
     Base.:+(psiA::M, psiB::M) where {M <: FiniteMPS}
-    addition of two MPSs
+Addition of two MPSs
 """
 function Base.:+(psiA::FiniteMPS, psiB::FiniteMPS) 
     (length(psiA) == length(psiB)) || throw(DimensionMismatch())
@@ -174,7 +183,8 @@ end
 
 """
     infinite_temperature_state(::Type{T}, physpaces::Vector{S}; sector::Sector, fuser=⊠) where {T<:Number, S<:EuclideanSpace}
-    create an infinite temperature state (identity) as mps, namely |I⟩
+    infinite_temperature_state(physpaces::Vector{S}; kwargs...) where {S<:EuclideanSpace} = infinite_temperature_state(ComplexF64, physpaces; kwargs...)
+Construct an infinite temperature state (identity) as mps, namely |I⟩
 """
 function infinite_temperature_state(::Type{T}, physpaces::Vector{S}; left::S=oneunit(S), right::S=oneunit(S), fuser=⊠) where {T<:Number, S<:EuclideanSpace}
      ((fuser === ⊠) || (fuser === ⊗)) || throw(ArgumentError("fuser should be ⊗ or ⊠."))
@@ -295,10 +305,10 @@ end
 """
     TensorKit.:⊗(x::FiniteMPS, y::FiniteMPS; trunc::TruncationScheme=default_truncation(spacetype(x))) 
     TensorKit.:⊗(x::FiniteMPS, y::AdjointFiniteMPS; trunc::TruncationScheme=default_truncation(spacetype(x)))
-    kronecker of two mps is another mps
-    kronecker of an mps with a conjugate mps is a density operator
-    kronecker of a conjugate mps with an mps is not deifned
-    A bare kronecker operator may produce a huge MPS, thus we truncate it and return
+kronecker of two mps is another mps
+kronecker of an mps with a conjugate mps is a density operator
+kronecker of a conjugate mps with an mps is not deifned
+A bare kronecker operator may produce a huge MPS, thus we truncate it and return
 """
 TensorKit.:⊗(x::FiniteMPS, y::FiniteMPS; trunc::TruncationScheme=default_truncation(spacetype(x))) = _otimes(x, y, ⊗, trunc)
 TensorKit.:⊗(x::FiniteMPS, y::AdjointFiniteMPS; trunc::TruncationScheme=default_truncation(spacetype(x))) = _otimes(x, y, ⊗, trunc)
@@ -306,7 +316,7 @@ TensorKit.:⊗(x::AdjointFiniteMPS, y::FiniteMPS; kwargs...) = error("<x| ⊗ |y
 
 """
     TensorKit.:⊠(x::FiniteMPS, y::AdjointFiniteMPS; trunc::TruncationScheme=default_truncation(spacetype(x)))
-    A bare kronecker operator may produce a huge MPS, thus we truncate it and return
+A bare kronecker operator may produce a huge MPS, thus we truncate it and return
 """
 TensorKit.:⊠(x::FiniteMPS, y::AdjointFiniteMPS; trunc::TruncationScheme=default_truncation(spacetype(x))) = _otimes(x, y, ⊠, trunc)
 TensorKit.:⊠(x::FiniteMPS, y::FiniteMPS; trunc::TruncationScheme=default_truncation(spacetype(x))) = _otimes(x, y, ⊠, trunc)
@@ -314,6 +324,6 @@ TensorKit.:⊠(x::AdjointFiniteMPS, y::FiniteMPS; kwargs...) = error("<x| ⊠ |y
 
 """
     DensityOperator(psi::FiniteMPS; fuser=⊠, kwargs...)
-    return ρ = |ψ⟩⟨ψ|
+return ρ = |ψ⟩⟨ψ|
 """
 DensityOperator(psi::FiniteMPS; fuser=⊠, kwargs...) = fuser(psi, psi'; kwargs...)
