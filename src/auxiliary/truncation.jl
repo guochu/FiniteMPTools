@@ -1,6 +1,10 @@
 # customized truncation
 
-
+"""
+	struct MPSTruncation
+truncate singular values below ϵ first, if the remaining bond dimension is larger than dim, then truncate it below dim
+Return the p-norm of the truncated singular values.
+"""
 struct MPSTruncation <: TensorKit.TruncationScheme
 	dim::Int
 	ϵ::Float64
