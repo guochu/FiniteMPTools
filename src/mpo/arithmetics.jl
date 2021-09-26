@@ -249,11 +249,11 @@ const MPO_APPROX_EQUAL_ATOL = 1.0e-12
 Base.isapprox(a::FiniteMPO, b::FiniteMPO; atol=MPO_APPROX_EQUAL_ATOL) = distance2(a, b) <= atol
 
 
-r_RR(psiA::M, h::FiniteMPO, psiB::M) where {M <: Union{FiniteMPS, ExactFiniteMPS}} = isomorphism(
+r_RR(psiA::M, h::FiniteMPO, psiB::M) where {M <: Union{FiniteMPS, ExactFiniteMPS}} = loose_isometry(
     Matrix{promote_type(scalar_type(psiA), scalar_type(h), scalar_type(psiB))}, space_r(psiA), space_r(h) ⊗ space_r(psiB))
 
 
-l_LL(psiA::M, h::FiniteMPO, psiB::M) where {M <: Union{FiniteMPS, ExactFiniteMPS}} = isomorphism(
+l_LL(psiA::M, h::FiniteMPO, psiB::M) where {M <: Union{FiniteMPS, ExactFiniteMPS}} = loose_isometry(
     Matrix{promote_type(scalar_type(psiA), scalar_type(h), scalar_type(psiB))}, space_l(psiA), space_l(h) ⊗ space_l(psiB))
 
 

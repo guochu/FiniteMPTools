@@ -11,7 +11,7 @@ end
 function environments(psiA::FiniteMPS, psiB::FiniteMPS)
 	(length(psiA) == length(psiB)) || throw(DimensionMismatch())
 	(space_r(psiA) == space_r(psiB)) || throw(SpaceMismatch())
-	hold = r_RR(psiB)
+	hold = r_RR(psiA, psiB)
 	L = length(psiA)
 	cstorage = Vector{typeof(hold)}(undef, L+1)
 	cstorage[L+1] = hold

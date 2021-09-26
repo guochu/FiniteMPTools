@@ -35,6 +35,7 @@ function spinal_fermion_site_ops_u1_u1()
 
 	adagup = SiteOp(_convert_to_tensor_map(kron(sp, I2))[1])
 	adagdown = SiteOp(_convert_to_tensor_map(kron(JW1, sp))[1])
+	# adagdown = SiteOp(_convert_to_tensor_map(kron(I2, sp))[1])
 
 	adag = adagup + adagdown
 
@@ -52,6 +53,7 @@ function spinal_fermion_site_ops_dense()
 
 	adagup = SiteOp(kron(sp, I2))
 	adagdown = SiteOp(kron(JW1, sp))
+	# adagdown = SiteOp(kron(I2, sp))
 
 	adag = adagup + adagdown
 

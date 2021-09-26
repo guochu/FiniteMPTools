@@ -66,7 +66,7 @@ function init_cstorage_right(psiA::FiniteMPS, psiB::FiniteMPS)
 	(length(psiA) == length(psiB)) || throw(DimensionMismatch())
 	(space_r(psiA) == space_r(psiB)) || throw(SpaceMismatch())
 	L = length(psiA)
-	hold = r_RR(psiA)
+	hold = r_RR(psiA, psiB)
 	cstorage = Vector{typeof(hold)}(undef, L+1)
 	cstorage[1] = l_LL(psiA)
 	cstorage[L+1] = hold

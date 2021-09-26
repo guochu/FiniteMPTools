@@ -36,15 +36,55 @@ function _unitary_tt_corr_util(h, A, B, C, state, times, stepper)
 	return [result...]
 end
 
+function _unitary_tt_corr_at_b(h, A, B, state, times, stepper)
+	state_right = B * state
+	state_left = copy(state)
+
+	result = scalar_type(state)[]
+	local cache_left, cache_right	
+	for i in 1:length(times)	
+		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
+		if abs(tspan[2] - tspan[1]) > 0.
+			stepper = change_tspan_dt(stepper, tspan=tspan)
+			(@isdefined cache_left) || (cache_left = timeevo_cache(h, stepper, state_left))
+			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
+			state_left, cache_left = timeevo!(state_left, h, stepper, cache_left)
+			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
+		end
+		push!(result, dot(A' * state_left, state_right))
+	end
+	return result
+end
+
+function _unitary_tt_corr_a_bt(h, A, B, state, times, stepper)
+	state_right = copy(state)
+	state_left = A' * state
+
+	result = scalar_type(state)[]
+	local cache_left, cache_right	
+	for i in 1:length(times)	
+		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
+		if abs(tspan[2] - tspan[1]) > 0.
+			stepper = change_tspan_dt(stepper, tspan=tspan)
+			(@isdefined cache_left) || (cache_left = timeevo_cache(h, stepper, state_left))
+			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
+			state_left, cache_left = timeevo!(state_left, h, stepper, cache_left)
+			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
+		end
+		push!(result, expectation(state_left, B, state_right))
+	end
+	return result
+end
+
 function unitart_twotime_corr(h::QuantumOperator, a::Union{FiniteMPO, MPOHamiltonian}, b::Union{FiniteMPO, MPOHamiltonian}, 
 	state::FiniteMPS, times::Vector{<:Real}; stepper::AbstractStepper=TEBDStepper(tspan=(0., -0.01*im), stepsize=0.01), reverse::Bool=false)
 	_check_times(times)
 	# isa(stepper, TDVPStepper) && (h = FiniteMPO(h, alg=SVDCompression()))
-	reverse ? _unitary_tt_corr_util(h, a, b, nothing, state, times, stepper) : _unitary_tt_corr_util(h, nothing, a, b, state, times, stepper)
+	# reverse ? _unitary_tt_corr_util(h, a, b, nothing, state, times, stepper) : _unitary_tt_corr_util(h, nothing, a, b, state, times, stepper)
+	reverse ? _unitary_tt_corr_a_bt(h, a, b, state, times, stepper) : _unitary_tt_corr_at_b(h, a, b, state, times, stepper)
 end
 
 function _open_tt_corr_util(h, A, B, C, state, times, stepper)
-	# isa(stepper, TDVPStepper) && (h = FiniteMPO(h, alg=SVDCompression()))
 	if isnothing(C)
 		state_right = copy(state)
 	else
@@ -53,7 +93,7 @@ function _open_tt_corr_util(h, A, B, C, state, times, stepper)
 	if !isnothing(A)
 		state_right = A * state_right
 	end
-	result = []
+	result = scalar_type(state_right)[]
 	# cache_right = timeevo_cache(h, stepper, state_right)
 	local cache_right
 	for i in 1:length(times)	
@@ -63,10 +103,11 @@ function _open_tt_corr_util(h, A, B, C, state, times, stepper)
 			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
 			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
 		end
-		push!(result, expectation(B, state_right) )
+		push!(result, dot(B' * state_right.I, state_right.data) )
 	end
-	return [result...]
+	return result
 end
+
 
 """
 	correlation_2op_1t(h::QuantumOperator, a::QuantumOperator, b::QuantumOperator, state::FiniteMPS, times::Vector{<:Real}, stepper::AbstractStepper; 
@@ -101,7 +142,6 @@ function _exact_unitary_tt_corr_util(h, A, B, C, state, times)
 	state_left = ExactFiniteMPS(state_left)
 	state_right = ExactFiniteMPS(state_right)
 	(state_left.center == state_right.center) || error("something wrong.")
-	# isa(h, QuantumOperator) && (h = FiniteMPO(h))
 	left, right = init_h_center(h, state_right)
 
 	result = []
@@ -114,6 +154,49 @@ function _exact_unitary_tt_corr_util(h, A, B, C, state, times)
 		push!(result, expectation(FiniteMPS(state_left), B, FiniteMPS(state_right)))
 	end
 	return [result...]
+end
+
+function _exact_unitary_tt_corr_at_b(h, A, B, state, times)
+	state_right = B * state
+	state_left = copy(state)
+
+	state_left = ExactFiniteMPS(state_left)
+	state_right = ExactFiniteMPS(state_right)
+	(state_left.center == state_right.center) || error("something wrong.")
+	left, right = init_h_center(h, state_right)
+
+	result = scalar_type(state)[]
+	for i in 1:length(times)	
+		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
+		if abs(tspan[2] - tspan[1]) > 0.
+			state_left = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_left, left, right, ishermitian=true)
+			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=true)
+		end
+		push!(result, dot(A' * FiniteMPS(state_left), FiniteMPS(state_right)))
+	end
+	return result
+end
+
+function _exact_unitary_tt_corr_a_bt(h, A, B, state, times)
+	state_right = copy(state)
+	state_left = A' * state
+
+	state_left = ExactFiniteMPS(state_left)
+	state_right = ExactFiniteMPS(state_right)
+	(state_left.center == state_right.center) || error("something wrong.")
+	left, right = init_h_center(h, state_right)
+
+	result = scalar_type(state)[]
+	local cache_left, cache_right	
+	for i in 1:length(times)	
+		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
+		if abs(tspan[2] - tspan[1]) > 0.
+			state_left = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_left, left, right, ishermitian=true)
+			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=true)
+		end
+		push!(result, expectation(FiniteMPS(state_left), B, FiniteMPS(state_right)))
+	end
+	return result
 end
 
 function _exact_open_tt_corr_util(h, A, B, C, state, times)
@@ -129,15 +212,16 @@ function _exact_open_tt_corr_util(h, A, B, C, state, times)
 	# isa(h, QuantumOperator) && (h = FiniteMPO(h))
 	left, right = init_h_center(h, state_right)
 
-	result = []
+	result = scalar_type(state)[]
 	for i in 1:length(times)
 		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
 		if tspan[2] - tspan[1] > 0.
 			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=false)
 		end
-		push!(result, expectation(B, FiniteDensityOperatorMPS(FiniteMPS(state_right), state.fusers, state.I)))
+		# push!(result, expectation(B, FiniteDensityOperatorMPS(FiniteMPS(state_right), state.fusers, state.I)))
+		push!(result, dot(B' * state.I, FiniteMPS(state_right) ) )
 	end
-	return [result...]
+	return result
 end
 
 # exact diagonalization, used for small systems or debug
@@ -147,7 +231,8 @@ function exact_correlation_2op_1t(h::QuantumOperator, a::QuantumOperator, b::Qua
 	a = FiniteMPO(a)
 	b = FiniteMPO(b)
 	h = FiniteMPO(h)
-	reverse ? _exact_unitary_tt_corr_util(h, a, b, nothing, state, times) : _exact_unitary_tt_corr_util(h, nothing, a, b, state, times)
+	# reverse ? _exact_unitary_tt_corr_util(h, a, b, nothing, state, times) : _exact_unitary_tt_corr_util(h, nothing, a, b, state, times)
+	reverse ? _exact_unitary_tt_corr_a_bt(h, a, b, state, times) : _exact_unitary_tt_corr_at_b(h, a, b, state, times)
 end
 function exact_correlation_2op_1t(h::SuperOperatorBase, a::QuantumOperator, b::QuantumOperator, state::FiniteDensityOperatorMPS, times::Vector{<:Real}; reverse::Bool=false)
 	_check_times(times)
