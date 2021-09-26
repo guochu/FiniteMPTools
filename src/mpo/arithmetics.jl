@@ -158,7 +158,7 @@ end
 """
 Base.:*(hA::AdjointFiniteMPO, hB::AdjointFiniteMPO) = (hB.parent * hA.parent)'
 
-function mpo_tensor_adjoint(vj::MPOTensor)
+function single_mpo_tensor_adjoint(vj::MPOTensor)
     rj = vj'
     sl = space(rj, 3)'
     ml = isomorphism(Matrix{eltype(vj)}, sl, flip(sl))
@@ -168,11 +168,25 @@ function mpo_tensor_adjoint(vj::MPOTensor)
     return tmp
 end
 
+function mpo_tensor_adjoint(v::Vector{<:MPOTensor})
+    isempty(v) && throw(ArgumentError("no tensors."))
+    L = length(v)
+    sr = space(v[L], 3)
+    (length(sectors(sr)) == 1) || throw(ArgumentError("MPO containing multiple indices not allowed."))
+    sector = first(sectors(sr))
+    r = single_mpo_tensor_adjoint.(v)
+    if isdual(sr)
+        r[L] *= frobeniusschur(sector)
+    end
+    # r[L] *= frobeniusschur(sector)
+    return r
+end
+
 # function FiniteMPO(h::AdjointFiniteMPO)
 #     isstrict(h) || throw(ArgumentError("not strict operator allowed."))
 #     return FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
 # end  
-FiniteMPO(h::AdjointFiniteMPO) = FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
+FiniteMPO(h::AdjointFiniteMPO) = FiniteMPO(mpo_tensor_adjoint(raw_data(h.parent)))
 
 # mult adjoint and normal
 function _mult_a_n(a::Vector{<:MPOTensor}, hB::Vector{<:MPOTensor}, right::EuclideanSpace)

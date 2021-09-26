@@ -201,7 +201,7 @@ is_constant(s::AdjointQTerm) = is_constant(s.parent)
 
 function QTerm(m::AdjointQTerm)
 	# isstrict(m.parent) || throw(ArgumentError("can not convert non-strict QTerm adjoint into a QTerm."))
-	QTerm(positions(m.parent), mpo_tensor_adjoint.(op(m.parent)), conj(coeff(m.parent)) )
+	QTerm(positions(m.parent), mpo_tensor_adjoint(op(m.parent)), conj(coeff(m.parent)) )
 end 
 
 

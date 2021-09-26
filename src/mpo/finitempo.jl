@@ -114,8 +114,6 @@ bond_dimension(h::FiniteMPO) = maximum(bond_dimensions(h))
 
 physical_spaces(psi::FiniteMPO) = [space(item, 2) for item in raw_data(psi)]
 
-# Base.adjoint(h::FiniteMPO) = FiniteMPO(mpo_tensor_adjoint.(raw_data(h)))
-
 # function select_sector(h::FiniteMPO; sector::Sector)
 # 	s_r = space_r(h)'
 # 	hassector(s_r, sector) || throw(ArgumentError("sector does not exist."))
