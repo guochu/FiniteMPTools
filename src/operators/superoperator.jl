@@ -66,7 +66,7 @@ function superoperator(x::QTerm, y::QTerm; fuser=⊠)
         (isstrict(x) && isstrict(y)) || throw(ArgumentError("only strict QTerms allowed."))
     end	
     pos, opx, opy = _coerce_qterms(x, y)
-    v = _otimes_n_a(opx, opy, fuser)
+    v = _otimes_n_a(opx, opy, fuser, right=oneunit(spacetype(opy[1]))')
 	return QTerm(pos, v, coeff=coeff(x) * conj(coeff(y)))
 end
 

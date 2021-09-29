@@ -200,14 +200,14 @@ is_constant(s::AdjointQTerm) = is_constant(s.parent)
 
 
 function QTerm(m::AdjointQTerm)
-	# isstrict(m.parent) || throw(ArgumentError("can not convert non-strict QTerm adjoint into a QTerm."))
-	QTerm(positions(m.parent), mpo_tensor_adjoint(op(m.parent)), conj(coeff(m.parent)) )
+	isstrict(m.parent) || throw(ArgumentError("can not convert non-strict QTerm adjoint into a QTerm."))
+	QTerm(positions(m.parent), mpo_tensor_adjoint.(op(m.parent)), conj(coeff(m.parent)) )
 end 
 
 
 """
 	Base.:*(x::QTerm, y::AdjointQTerm)
-	multiplication between two QTerms
+multiplication between two QTerms
 """
 function Base.:*(x::QTerm, y::AdjointQTerm)
 	pos, opx, opy = _coerce_qterms(x, y.parent)

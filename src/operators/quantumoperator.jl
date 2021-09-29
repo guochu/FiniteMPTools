@@ -37,6 +37,7 @@ TensorKit.spacetype(::Type{QuantumOperator{S, M}}) where {S, M} = S
 TensorKit.spacetype(x::QuantumOperator) = spacetype(typeof(x))
 TensorKit.space(x::QuantumOperator) = x.physpaces
 TensorKit.space(x::QuantumOperator, i::Int) = x.physpaces[i]
+physical_spaces(x::QuantumOperator{S, M}) where {S, M} = convert(Vector{S}, space(x))
 
 raw_data(x::QuantumOperator) = x.data
 Base.copy(x::QuantumOperator) = QuantumOperator(copy(space(x)), copy(raw_data(x)))

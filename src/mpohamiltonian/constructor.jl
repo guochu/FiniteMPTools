@@ -91,8 +91,8 @@ scalar_type(::Type{ExponentialDecayTerm{M1, M, M2, T}}) where {M1, M, M2, T} = p
 scalar_type(x::ExponentialDecayTerm) = scalar_type(typeof(x))
 
 _op_adjoint(a::ScalarSiteOp, m::ScalarSiteOp, b::ScalarSiteOp) = (a', m', b')
-_op_adjoint(a::SiteOp, m::ScalarSiteOp, b::SiteOp) = (SiteOp(single_mpo_tensor_adjoint(a.op)), m', SiteOp(single_mpo_tensor_adjoint(b.op)))
-_op_adjoint(a::SiteOp, m::ScalarSiteOp, b::AdjointSiteOp) = (SiteOp(single_mpo_tensor_adjoint(a.op)), m', SiteOp(single_mpo_tensor_adjoint(b.parent.op))' )
+_op_adjoint(a::SiteOp, m::ScalarSiteOp, b::SiteOp) = (SiteOp(mpo_tensor_adjoint(a.op)), m', SiteOp(mpo_tensor_adjoint(b.op)))
+_op_adjoint(a::SiteOp, m::ScalarSiteOp, b::AdjointSiteOp) = (SiteOp(mpo_tensor_adjoint(a.op)), m', SiteOp(mpo_tensor_adjoint(b.parent.op))' )
 
 Base.adjoint(x::ExponentialDecayTerm) = ExponentialDecayTerm(_op_adjoint(x.a, x.m, x.b)...; α=conj(x.α), coeff=conj(coeff(x)))
 

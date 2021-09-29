@@ -124,7 +124,7 @@ function Base.:*(h::FiniteMPO, psi::FiniteMPS)
 end
 Base.:*(h::FiniteMPO, psi::FiniteDensityOperatorMPS) = FiniteDensityOperatorMPS(h * psi.data, psi.fusers, psi.I)
 Base.:*(h::AdjointFiniteMPO, psi::AdjointFiniteMPS) = (h.parent * psi.parent)'
-Base.:*(h::AdjointFiniteMPO, psi::FiniteMPS) = FiniteMPO(h) * psi
+# Base.:*(h::AdjointFiniteMPO, psi::FiniteMPS) = FiniteMPO(h) * psi
 
 # normal normal mult of two chains of MPOTensor
 function _mult_n_n(a::Vector{<:MPOTensor}, b::Vector{<:MPOTensor})
@@ -158,7 +158,7 @@ end
 """
 Base.:*(hA::AdjointFiniteMPO, hB::AdjointFiniteMPO) = (hB.parent * hA.parent)'
 
-function single_mpo_tensor_adjoint(vj::MPOTensor)
+function mpo_tensor_adjoint(vj::MPOTensor)
     rj = vj'
     sl = space(rj, 3)'
     ml = isomorphism(Matrix{eltype(vj)}, sl, flip(sl))
@@ -168,25 +168,12 @@ function single_mpo_tensor_adjoint(vj::MPOTensor)
     return tmp
 end
 
-function mpo_tensor_adjoint(v::Vector{<:MPOTensor})
-    isempty(v) && throw(ArgumentError("no tensors."))
-    L = length(v)
-    sr = space(v[L], 3)
-    (length(sectors(sr)) == 1) || throw(ArgumentError("MPO containing multiple indices not allowed."))
-    sector = first(sectors(sr))
-    r = single_mpo_tensor_adjoint.(v)
-    if isdual(sr)
-        r[L] *= frobeniusschur(sector)
-    end
-    # r[L] *= frobeniusschur(sector)
-    return r
-end
 
-# function FiniteMPO(h::AdjointFiniteMPO)
-#     isstrict(h) || throw(ArgumentError("not strict operator allowed."))
-#     return FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
-# end  
-FiniteMPO(h::AdjointFiniteMPO) = FiniteMPO(mpo_tensor_adjoint(raw_data(h.parent)))
+function FiniteMPO(h::AdjointFiniteMPO)
+    isstrict(h) || throw(ArgumentError("not strict operator allowed."))
+    return FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
+end  
+# FiniteMPO(h::AdjointFiniteMPO) = FiniteMPO(mpo_tensor_adjoint.(raw_data(h.parent)))
 
 # mult adjoint and normal
 function _mult_a_n(a::Vector{<:MPOTensor}, hB::Vector{<:MPOTensor}, right::EuclideanSpace)
@@ -327,7 +314,13 @@ function _otimes(x::FiniteMPO, y::FiniteMPO, f)
     return FiniteMPO(v)
 end
 
-function _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f)
+"""
+    _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f; right=nothing)
+if f = ⊠, right is not used. (Example: one of x or y is strict)
+if f = ⊗, if right is nothing, simply fusing the boundaries, else right should be a space, meaning selecting right after fusing the boundaries. 
+(Example: both x and y are not strict, but the result is strict after selecting vacuum)
+"""
+function _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f; right=oneunit(spacetype(y[1]))')
     L = length(x)
     r = [f(xj, permute(yj', (3,4), (1,2)) ) for (xj, yj) in zip(x, y)]
     T = eltype(r[1])
@@ -340,8 +333,14 @@ function _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f)
         # a sector has to be chosen, I choose the vacuum sector
         v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L-1]
         i = L
-        right = isomorphism(Matrix{T}, oneunit(spacetype(r[i]))' ⊗ space(r[i], 5)', space(r[i], 7) ) 
-        @tensor tmp[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*right[-3,5,7]*p_f[i][6,8,-4]
+        if !isnothing(right)
+            # default oneunit(spacetype(r[i]))'
+            right_ts = isomorphism(Matrix{T}, right ⊗ space(r[i], 5)', space(r[i], 7) ) 
+            @tensor tmp[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*right_ts[-3,5,7]*p_f[i][6,8,-4]        
+        else
+             right_ts = isomorphism(Matrix{T}, fuse(space(r[i], 5), space(r[i], 7)) , space(r[i], 5) ⊗ space(r[i], 7) ) 
+            @tensor tmp[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*right_ts[-3,5,7]*p_f[i][6,8,-4]              
+        end
         push!(v, tmp)
     else
         v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L]
@@ -350,14 +349,14 @@ function _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f)
 end
 
 # we allow the case where x, y are nonstrict and f=⊗
-function _otimes(x::FiniteMPO, y::ConjugateFiniteMPO, f)
+function _otimes(x::FiniteMPO, y::ConjugateFiniteMPO, f; kwargs...)
     ((f === ⊠) || (f === ⊗)) || throw(ArgumentError("fuser should be ⊗ or ⊠."))
     (length(x) == length(y)) || throw(DimensionMismatch())
     yp = y.parent
     if f === ⊠
         (isstrict(x) && isstrict(yp)) || throw(ArgumentError("only strict MPOs allowed."))
     end       
-    v = _otimes_n_a(raw_data(x), raw_data(yp), f)
+    v = _otimes_n_a(raw_data(x), raw_data(yp), f; kwargs...)
     return FiniteMPO(v)
 end
 
@@ -365,9 +364,9 @@ end
     TensorKit.:⊗(x::FiniteMPO, y::Union{FiniteMPO, ConjugateFiniteMPO}) 
 x⊗y or x⊗conj(y)
 """
-TensorKit.:⊗(x::FiniteMPO, y::Union{FiniteMPO, ConjugateFiniteMPO}) = _otimes(x, y, ⊗)
+TensorKit.:⊗(x::FiniteMPO, y::Union{FiniteMPO, ConjugateFiniteMPO}; kwargs...) = _otimes(x, y, ⊗; kwargs...)
 TensorKit.:⊗(x::Union{AdjointFiniteMPO, ConjugateFiniteMPO}, args...) = error("A† ⊗ B not defined, only A ⊗ B and A ⊗ B† allowed.")
-TensorKit.:⊠(x::FiniteMPO, y::Union{FiniteMPO, ConjugateFiniteMPO}) = _otimes(x, y, ⊠)
+TensorKit.:⊠(x::FiniteMPO, y::Union{FiniteMPO, ConjugateFiniteMPO}; kwargs...) = _otimes(x, y, ⊠)
 TensorKit.:⊠(x::Union{AdjointFiniteMPO, ConjugateFiniteMPO}, args...) = error("A† ⊠ B not defined, only A ⊠ B and A ⊠ B† allowed.")
 
 
