@@ -71,8 +71,9 @@ function (x::QuantumOperator)(t::Number)
 	return QuantumOperator(copy(space(x)), r)
 end 
 
-function Base.:*(x::QuantumOperator, y::Union{Number, Coefficient}) 
+function Base.:*(x::QuantumOperator, y::Union{Number, Function, Coefficient}) 
 	r = typeof(raw_data(x))()
+	y = Coefficient(y)
 	for (k, v) in raw_data(x)
 		vr =  typeof(v)()
 		for (t, c) in v
@@ -83,8 +84,8 @@ function Base.:*(x::QuantumOperator, y::Union{Number, Coefficient})
 	return QuantumOperator(copy(space(x)), r)
 end
 
-Base.:*(y::Union{Number, Coefficient}, x::QuantumOperator) = x * y
-Base.:/(x::QuantumOperator, y::Union{Number, Coefficient}) = x * (1 / y)
+Base.:*(y::Union{Number, Function, Coefficient}, x::QuantumOperator) = x * y
+Base.:/(x::QuantumOperator, y::Union{Number, Function, Coefficient}) = x * (1 / Coefficient(y))
 Base.:+(x::QuantumOperator) = x
 Base.:-(x::QuantumOperator) = x * (-1)
 

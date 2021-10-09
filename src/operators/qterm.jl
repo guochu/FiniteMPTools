@@ -79,9 +79,9 @@ end
 Base.copy(x::QTerm) = QTerm(copy(positions(x)), copy(op(x)), copy(coeff(x)))
 Base.isempty(x::QTerm) = isempty(op(x))
 
-Base.:*(s::QTerm, m::Union{Number, Coefficient}) = QTerm(positions(s), op(s), coeff(s) * m)
-Base.:*(m::Union{Number, Coefficient}, s::QTerm) = s * m
-Base.:/(s::QTerm, m::Union{Number, Coefficient}) = QTerm(positions(s), op(s), coeff(s) / m)
+Base.:*(s::QTerm, m::Union{Number, Function, Coefficient}) = QTerm(positions(s), op(s), coeff(s) * Coefficient(m))
+Base.:*(m::Union{Number, Function, Coefficient}, s::QTerm) = s * m
+Base.:/(s::QTerm, m::Union{Number, Function, Coefficient}) = QTerm(positions(s), op(s), coeff(s) / Coefficient(m))
 Base.:+(s::QTerm) = s
 Base.:-(s::QTerm) = QTerm(positions(s), op(s), -coeff(s))
 
