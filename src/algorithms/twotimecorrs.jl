@@ -6,6 +6,7 @@ _to_a(x::FiniteMPO) = adjoint(FiniteMPO(mpo_tensor_adjoint.(raw_data(x))))
 
 function _unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, times, stepper)
 	state_right = B * state
+	canonicalize!(state_right)
 	state_left = copy(state)
 
 	result = scalar_type(state)[]
@@ -29,6 +30,7 @@ _unitary_tt_corr_at_b(h, A::FiniteMPO, B::AdjointFiniteMPO, state, times, steppe
 function _unitary_tt_corr_a_bt(h, A::AdjointFiniteMPO, B::FiniteMPO, state, times, stepper)
 	state_right = copy(state)
 	state_left = A' * state
+	canonicalize!(state_left)
 
 	result = scalar_type(state)[]
 	local cache_left, cache_right	
@@ -87,6 +89,7 @@ end
 
 function _open_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, times, stepper)
 	state_right = B * state
+	canonicalize!(state_right)
 
 	result = scalar_type(state_right)[]
 	local cache_right
@@ -104,6 +107,7 @@ end
 
 function _open_tt_corr_a_bt(h, A::FiniteMPO, B::AdjointFiniteMPO, state, times, stepper)
 	state_right = A * state
+	canonicalize!(state_right)
 
 	result = scalar_type(state_right)[]
 	local cache_right
