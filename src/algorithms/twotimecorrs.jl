@@ -12,6 +12,7 @@ function _unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, time
 	result = scalar_type(state)[]
 	local cache_left, cache_right	
 	for i in 1:length(times)	
+		# println("state norm $(norm(state_left)), $(norm(state_right)).")
 		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
 		if abs(tspan[2] - tspan[1]) > 0.
 			stepper = change_tspan_dt(stepper, tspan=tspan)
@@ -19,6 +20,7 @@ function _unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, time
 			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
 			state_left, cache_left = timeevo!(state_left, h, stepper, cache_left)
 			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
+			# println("step size $(cache_left.stepper.stepsize), $(cache_right.stepper.stepsize)")
 		end
 		push!(result, dot(A' * state_left, state_right))
 	end
