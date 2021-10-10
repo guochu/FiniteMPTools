@@ -156,7 +156,7 @@ space_r(state::FiniteMPS) = space(state[end], 3)
 
 
 r_RR(psiA::FiniteMPS, psiB::FiniteMPS) = isomorphism(Matrix{promote_type(scalar_type(psiA), scalar_type(psiB))}, space_r(psiA), space_r(psiB))
-r_LL(psiA::FiniteMPS, psiB::FiniteMPS) = isomorphism(Matrix{promote_type(scalar_type(psiA), scalar_type(psiB))}, space_l(psiA), space_l(psiB))
+l_LL(psiA::FiniteMPS, psiB::FiniteMPS) = isomorphism(Matrix{promote_type(scalar_type(psiA), scalar_type(psiB))}, space_l(psiA), space_l(psiB))
 
 
 """

@@ -164,7 +164,7 @@ function _coerce_qterms(x::QTerm, y::QTerm)
     	new_opy = []
     	for pos in new_pos
     		pos_x = findfirst(a->a==pos, positions(x))
-    		pos_y = findfirst(a->a==pos, positions(x))
+    		pos_y = findfirst(a->a==pos, positions(y))
     		if isnothing(pos_x) && !(isnothing(pos_y))
     			push!(new_opx, id(Matrix{T}, vacuum ⊗ space(opy[pos_y], 2) ))
     			push!(new_opy, opy[pos_y])

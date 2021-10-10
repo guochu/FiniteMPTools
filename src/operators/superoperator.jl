@@ -40,19 +40,22 @@ Base.length(x::SuperOperatorBase) = length(x.data)
 is_constant(x::SuperOperatorBase) = is_constant(x.data)
 interaction_range(x::SuperOperatorBase)  = interaction_range(x.data)
 
-(x::SuperOperatorBase)(t::Number) = SuperOperatorBase(x.data(t))
-Base.:*(x::SuperOperatorBase, y::Number) = SuperOperatorBase(x.data * y)
-Base.:*(y::Number, x::SuperOperatorBase) = SuperOperatorBase(y * x.data)
-Base.:/(x::SuperOperatorBase, y::Number) = SuperOperatorBase(x.data / y)
+(x::SuperOperatorBase)(t::Number) = SuperOperatorBase(x.data(t), x.fuser)
+Base.:*(x::SuperOperatorBase, y::Number) = SuperOperatorBase(x.data * y, x.fuser)
+Base.:*(y::Number, x::SuperOperatorBase) = x * y
+Base.:/(x::SuperOperatorBase, y::Number) = x * (1/y)
 Base.:+(x::SuperOperatorBase) = x
-Base.:-(x::SuperOperatorBase) = SuperOperatorBase(-x.data)
-Base.:+(x::SuperOperatorBase, y::SuperOperatorBase) = SuperOperatorBase(x.data + y.data)
-Base.:-(x::SuperOperatorBase, y::SuperOperatorBase) = SuperOperatorBase(x.data - y.data)
-shift(x::SuperOperatorBase, n::Int) = SuperOperatorBase(shift(x.data, n))
+Base.:-(x::SuperOperatorBase) = SuperOperatorBase(-x.data, x.fuser)
+Base.:+(x::SuperOperatorBase, y::SuperOperatorBase) = begin
+	(x.fuser === y.fuser) || throw(ArgumentError("fuser mismatch."))
+	return SuperOperatorBase(x.data + y.data, x.fuser)
+end 
+Base.:-(x::SuperOperatorBase, y::SuperOperatorBase) = x + (-1) * y
+shift(x::SuperOperatorBase, n::Int) = SuperOperatorBase(shift(x.data, n), x.fuser)
 isstrict(x::SuperOperatorBase) = isstrict(x.data)
 qterms(x::SuperOperatorBase, args...) = qterms(x.data, args...)
 _expm(x::SuperOperatorBase, dt::Number) = _expm(x.data, dt)
-absorb_one_bodies(h::SuperOperatorBase) = SuperOperatorBase(h.data)
+absorb_one_bodies(h::SuperOperatorBase) = SuperOperatorBase(absorb_one_bodies(h.data), h.fuser)
 
 
 """

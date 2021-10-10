@@ -47,10 +47,7 @@ such as a†, this case is implemented with another MPO object.
 """
 function FiniteMPO{A}(mpotensors::Vector) where {A<:MPOTensor}
 	isempty(mpotensors) && error("no input mpstensors.")
-	all(_check_mpo_tensor_dir.(mpotensors)) || throw(SpaceMismatch())
 	_check_mpo_space(mpotensors, strict=false)
-	S = spacetype(A)
-	T = real(eltype(A))
 	return new{A}(mpotensors)
 end
 
