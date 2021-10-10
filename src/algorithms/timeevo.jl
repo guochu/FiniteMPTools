@@ -115,7 +115,7 @@ end
 # end
 
 function make_step!(h::QuantumOperator, stepper::TEBDStepper, state::FiniteMPS, x::HomogeousTEBDCache)
-	recalculate!(x, h, stepper)
+	x = recalculate!(x, h, stepper)
 	apply!(x.circuit, state, trunc=x.stepper.trunc)
 	return state, x
 end

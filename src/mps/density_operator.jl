@@ -56,3 +56,5 @@ space_r(psi::FiniteDensityOperatorMPS) = space_r(psi.data)
 sector(psi::FiniteDensityOperatorMPS) = sector(psi.data)
 
 LinearAlgebra.tr(psi::FiniteDensityOperatorMPS) = dot(psi.I, psi.data)
+
+canonicalize!(psi::FiniteDensityOperatorMPS; kwargs...) = canonicalize!(psi.data; kwargs...)
