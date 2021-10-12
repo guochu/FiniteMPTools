@@ -84,7 +84,7 @@ end
 """
 expectation(m::QTerm, psi::FiniteDensityOperatorMPS, envs=environments(psi)) = expectation(psi.I, m, psi.data, envs)
 
-function expectation(m::QuantumOperator, psi::FiniteDensityOperatorMPS)
+function expectation(h::SuperOperatorBase, psi::FiniteDensityOperatorMPS)
 	envs = environments(psi)
 	r = 0.
 	for m in qterms(h)
