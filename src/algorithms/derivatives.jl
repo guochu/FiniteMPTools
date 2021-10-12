@@ -1,6 +1,6 @@
 
 function ac_prime(x::MPSTensor{S}, m::MPOTensor{S}, hleft::AbstractTensorMap{S, 1, 2}, hright::AbstractTensorMap{S, 1, 2}) where {S <: EuclideanSpace}
-	@tensor tmp[-1 -2; -3] := hleft[-1, 1, 2] * x[2,3,4] * m[1,-2,5,3] * hright[-3,5,4]
+	@tensor tmp[-1 -2; -3] := ((hleft[-1, 1, 2] * x[2,3,4]) * m[1,-2,5,3]) * hright[-3,5,4]
 end
 
 
@@ -18,7 +18,7 @@ end
 
 
 function ac2_prime(x::MPOTensor{S}, h1::MPOTensor{S}, h2::MPOTensor{S}, hleft::AbstractTensorMap{S, 1, 2}, hright::AbstractTensorMap{S, 1, 2}) where {S <: EuclideanSpace}
-	@tensor tmp[-1 -2; -3 -4] := hleft[-1, 1, 2] * x[2, 3, 4, 5] * h1[1, -2, 6, 3] * h2[6, -3, 7, 4] * hright[-4, 7, 5]
+	@tensor tmp[-1 -2; -3 -4] := (((hleft[-1, 1, 2] * x[2, 3, 4, 5]) * h1[1, -2, 6, 3]) * h2[6, -3, 7, 4]) * hright[-4, 7, 5]
 end
 
 function ac2_prime(x::MPOTensor{S},h1::AbstractSiteMPOTensor{S},h2::AbstractSiteMPOTensor{S},hleft::Vector, hright::Vector) where {S <: EuclideanSpace}
@@ -50,14 +50,14 @@ end
 
 
 function c_prime(x::MPSBondTensor{S}, hleft::AbstractTensorMap{S, 1, 2}, hright::AbstractTensorMap{S, 1, 2}) where {S <: EuclideanSpace}
-    @tensor tmp[-1; -2] := hleft[-1, 1, 2] * x[2, 3] * hright[-2, 1, 3]
+    @tensor tmp[-1; -2] := (hleft[-1, 1, 2] * x[2, 3]) * hright[-2, 1, 3]
 end
 
 function c_prime(x::MPSBondTensor{S}, hleft::Vector, hright::Vector) where {S <: EuclideanSpace}
     @assert length(hleft) == length(hright)
     tmp = zero(x)
     for (hl, hr) in zip(hleft, hright)
-        @tensor tmp[-1, -2] += hl[-1, 1, 2] * x[2, 3] * hr[-2,1,3]
+        @tensor tmp[-1, -2] += (hl[-1, 1, 2] * x[2, 3]) * hr[-2,1,3]
     end
     return tmp
 end
