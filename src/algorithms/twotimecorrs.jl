@@ -60,7 +60,7 @@ _unitary_tt_corr_a_bt(h, A::FiniteMPO, B::AdjointFiniteMPO, state, times, steppe
 	for an open system with superoperator h, and a, b to be normal operators, compute <a(t)b> if revere=false and <a b(t)> if reverse=true.
 	For open system see definitions of <a(t)b> or <a b(t)> on Page 146 of Gardiner and Zoller (Quantum Noise)
 """
-function correlation_2op_1t(h::Union{QuantumOperator, AbstractMPO}, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real};
+function correlation_2op_1t(h::Union{QuantumOperator, AbstractMPO}, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Number};
 	stepper::AbstractStepper=TEBDStepper(tspan=(0., -0.01*im), stepsize=0.01), reverse::Bool=false)
 	reverse ? _unitary_tt_corr_a_bt(h, a, b, state, times, stepper) : _unitary_tt_corr_at_b(h, a, b, state, times, stepper)
 end
