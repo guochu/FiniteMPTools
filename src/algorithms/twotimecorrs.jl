@@ -3,6 +3,8 @@
 _to_n(x::AdjointFiniteMPO) = FiniteMPO(mpo_tensor_adjoint.(raw_data(x.parent)))
 _to_a(x::FiniteMPO) = adjoint(FiniteMPO(mpo_tensor_adjoint.(raw_data(x))))
 
+_time_reversal(t::Number) = -conj(t)
+_time_reversal(a::Tuple{<:Number, <:Number}) = (_time_reversal(a[1]), _time_reversal(a[2]))
 
 function _unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, times, stepper)
 	state_right = B * state
@@ -15,11 +17,12 @@ function _unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, time
 		# println("state norm $(norm(state_left)), $(norm(state_right)).")
 		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
 		if abs(tspan[2] - tspan[1]) > 0.
-			stepper = change_tspan_dt(stepper, tspan=tspan)
-			(@isdefined cache_left) || (cache_left = timeevo_cache(h, stepper, state_left))
-			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
-			state_left, cache_left = timeevo!(state_left, h, stepper, cache_left)
-			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
+			stepper_right = change_tspan_dt(stepper, tspan=tspan)
+			stepper_left = change_tspan_dt(stepper, tspan=_time_reversal(tspan))
+			(@isdefined cache_left) || (cache_left = timeevo_cache(h, stepper_left, state_left))
+			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper_right, state_right))
+			state_left, cache_left = timeevo!(state_left, h, stepper_left, cache_left)
+			state_right, cache_right = timeevo!(state_right, h, stepper_right, cache_right)
 			# println("step size $(cache_left.stepper.stepsize), $(cache_right.stepper.stepsize)")
 		end
 		push!(result, dot(A' * state_left, state_right))
@@ -39,11 +42,12 @@ function _unitary_tt_corr_a_bt(h, A::AdjointFiniteMPO, B::FiniteMPO, state, time
 	for i in 1:length(times)	
 		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
 		if abs(tspan[2] - tspan[1]) > 0.
-			stepper = change_tspan_dt(stepper, tspan=tspan)
-			(@isdefined cache_left) || (cache_left = timeevo_cache(h, stepper, state_left))
-			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
-			state_left, cache_left = timeevo!(state_left, h, stepper, cache_left)
-			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
+			stepper_right = change_tspan_dt(stepper, tspan=tspan)
+			stepper_left = change_tspan_dt(stepper, tspan=_time_reversal(tspan))
+			(@isdefined cache_left) || (cache_left = timeevo_cache(h, stepper_left, state_left))
+			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper_right, state_right))
+			state_left, cache_left = timeevo!(state_left, h, stepper_left, cache_left)
+			state_right, cache_right = timeevo!(state_right, h, stepper_right, cache_right)
 		end
 		push!(result, expectation(state_left, B, state_right))
 	end
@@ -64,6 +68,8 @@ function correlation_2op_1t(h::Union{QuantumOperator, AbstractMPO}, a::AbstractM
 	stepper::AbstractStepper=TEBDStepper(tspan=(0., -0.01*im), stepsize=0.01), reverse::Bool=false)
 	reverse ? _unitary_tt_corr_a_bt(h, a, b, state, times, stepper) : _unitary_tt_corr_at_b(h, a, b, state, times, stepper)
 end
+
+
 
 # function _open_tt_corr_util(h, A, B, C, state, times, stepper)
 # 	if isnothing(C)
