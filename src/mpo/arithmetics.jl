@@ -306,8 +306,12 @@ function _otimes_n_n(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f)
     r = [f(xj, yj) for (xj, yj) in zip(x, y)]
     p_f = [isomorphism(Matrix{eltype(m)}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4))) for m in r]
     l_f = PeriodicArray([isomorphism(Matrix{eltype(m)}, fuse(space(m, 1), space(m, 3)), space(m, 1) ⊗ space(m, 3) ) for m in r])
-    v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L]
-    return v
+    v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L-1]
+    m = r[L]
+    right = isomorphism(Matrix{eltype(m)}, space(m, 5)' ⊗ space(m, 7)', fuse(space(m, 5), space(m, 7)) )
+    @tensor tmp[-1 -2; -3 -4] := l_f[L][-1,1,3]*r[L][1,2,3,4,5,6,7,8]*conj(p_f[L][2,4,-2])*right[5,7,-3]*p_f[L][6,8,-4]
+    push!(v, tmp)
+    return [v...]
 end
 
 function _otimes(x::FiniteMPO, y::FiniteMPO, f)
