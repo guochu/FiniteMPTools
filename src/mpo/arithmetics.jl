@@ -311,7 +311,7 @@ function _otimes_n_n(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f)
 end
 
 function _otimes(x::FiniteMPO, y::FiniteMPO, f)
-    (isstrict(x) && isstrict(y)) || throw(ArgumentError("only strict MPOs allowed."))
+    # (isstrict(x) && isstrict(y)) || throw(ArgumentError("only strict MPOs allowed."))
     v = _otimes_n_n(raw_data(x), raw_data(y), f)
     return FiniteMPO(v)
 end
