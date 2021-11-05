@@ -40,6 +40,8 @@ export ExactFiniteMPS, exact_diagonalization, exact_timeevolution
 export timeevo!, AbstractStepper, TEBDStepper, TDVPStepper, change_tspan_dt, TEBDCache, TDVPCache, timeevo_cache
 # two-time correlations
 export correlation_2op_1t, exact_correlation_2op_1t, correlation_2op_1τ
+# thermal state
+export purified_thermalize, purified_infinite_temperature_state, thermal_state
 
 # utilities
 export boson_matrices, spin_half_matrices, spin_matrices
@@ -136,6 +138,7 @@ include("algorithms/dmrgexcited.jl")
 include("algorithms/tdvp.jl")
 include("algorithms/timeevo.jl")
 include("algorithms/twotimecorrs.jl")
+include("algorithms/thermalstate.jl")
 include("algorithms/exactdiag.jl")
 
 # utilities

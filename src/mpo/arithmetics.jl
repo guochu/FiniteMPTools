@@ -300,19 +300,35 @@ end
 expectation(h::FiniteMPO, psi::FiniteDensityOperatorMPS) = expectation(psi.I, h, psi.data)
 
 # kronecker product between MPOs
-function _otimes(x::FiniteMPO, y::FiniteMPO, f)
+function _otimes_n_n(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f)
     (length(x) == length(y)) || throw(DimensionMismatch())
-    (isstrict(x) && isstrict(y)) || throw(ArgumentError("only strict MPOs allowed."))
     L = length(x)
-    T = promote_type(scalar_type(x), scalar_type(y))
-    r = [f(xj, yj) for (xj, yj) in zip(raw_data(x), raw_data(y))]
-
-    p_f = [isomorphism(Matrix{T}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4))) for m in r]
-    l_f = PeriodicArray([isomorphism(Matrix{T}, fuse(space(m, 1), space(m, 3)), space(m, 1) ⊗ space(m, 3) ) for m in r])
+    r = [f(xj, yj) for (xj, yj) in zip(x, y)]
+    p_f = [isomorphism(Matrix{eltype(m)}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4))) for m in r]
+    l_f = PeriodicArray([isomorphism(Matrix{eltype(m)}, fuse(space(m, 1), space(m, 3)), space(m, 1) ⊗ space(m, 3) ) for m in r])
     v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L]
+    return v
+end
 
+function _otimes(x::FiniteMPO, y::FiniteMPO, f)
+    (isstrict(x) && isstrict(y)) || throw(ArgumentError("only strict MPOs allowed."))
+    v = _otimes_n_n(raw_data(x), raw_data(y), f)
     return FiniteMPO(v)
 end
+
+# function _otimes(x::FiniteMPO, y::FiniteMPO, f)
+#     (length(x) == length(y)) || throw(DimensionMismatch())
+#     (isstrict(x) && isstrict(y)) || throw(ArgumentError("only strict MPOs allowed."))
+#     L = length(x)
+#     T = promote_type(scalar_type(x), scalar_type(y))
+#     r = [f(xj, yj) for (xj, yj) in zip(raw_data(x), raw_data(y))]
+
+#     p_f = [isomorphism(Matrix{T}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4))) for m in r]
+#     l_f = PeriodicArray([isomorphism(Matrix{T}, fuse(space(m, 1), space(m, 3)), space(m, 1) ⊗ space(m, 3) ) for m in r])
+#     v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L]
+
+#     return FiniteMPO(v)
+# end
 
 """
     _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f; right=nothing)
