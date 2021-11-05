@@ -6,8 +6,10 @@ function purified_thermalize(m::QTerm)
 	v = _otimes_n_n(opx, opy, ⊠)
 	return QTerm(pos, v, coeff=coeff(m))
 end
+purified_thermalize(m::AdjointQTerm) = purified_thermalize(m.parent)'
 purified_thermalize(m::QuantumOperator) = QuantumOperator([purified_thermalize(item) for item in qterms(m)])
 purified_thermalize(m::FiniteMPO) = m ⊠ id(m)
+purified_thermalize(m::AdjointFiniteMPO) = purified_thermalize(m.parent)'
 
 function purified_infinite_temperature_state(::Type{T}, physpaces::Vector{S}) where {T <: Number, S <: Union{CartesianSpace, ComplexSpace}}
     L = length(physpaces)
@@ -62,6 +64,6 @@ function purified_thermal_state(h::Union{QuantumOperator, FiniteMPO}; β::Real, 
 	# return normalize!(state)
 	return state
 end
-thermal_state(h::Union{QuantumOperator, FiniteMPO}; kwargs...) = purified_thermal_state(h; kwargs...)
+# thermal_state(h::Union{QuantumOperator, FiniteMPO}; kwargs...) = purified_thermal_state(h; kwargs...)
 
 
