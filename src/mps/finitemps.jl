@@ -41,6 +41,7 @@ raw_data(psi::FiniteMPS) = psi.data
 """
 raw_singular_matrices(psi::FiniteMPS) = psi.svectors
 
+const FiniteNonSymmetricMPS{A, B} = FiniteMPS{A, B} where {A <: NonSymmetricMPSTensor, B}
 
 Base.eltype(psi::FiniteMPS) = eltype(typeof(psi))
 Base.length(psi::FiniteMPS) = length(raw_data(psi))
@@ -269,7 +270,7 @@ function max_bond_dimensions(physpaces::Vector{S}, sector::Sector) where {S <: E
 	end
 	return Ds
 end
-
+# for general MPS this is the only we can do
 function max_bond_dimensions(psi::FiniteMPS)
 	isstrict(psi) || throw(ArgumentError("only strict mps allowed."))
 	physpaces = [space(item, 2) for item in raw_data(psi)]
@@ -277,4 +278,40 @@ function max_bond_dimensions(psi::FiniteMPS)
 	return max_bond_dimensions(physpaces, sector)
 end
 
+function max_bond_dimensions(physpaces::Vector{Int}, D::Int) 
+	L = length(physpaces)
+	left = 1
+	right = 1
+	virtualpaces = Vector{Int}(undef, L+1)
+	virtualpaces[1] = left
+	for i in 2:L
+		virtualpaces[i] = min(virtualpaces[i-1] * physpaces[i-1], D)
+	end
+	virtualpaces[L+1] = right
+	for i in L:-1:2
+		virtualpaces[i] = min(virtualpaces[i], physpaces[i] * virtualpaces[i+1])
+	end
+	return virtualpaces
+end
+max_bond_dimensions(psi::FiniteNonSymmetricMPS, D::Int) = max_bond_dimensions(dim.(physical_spaces(psi)), D)
+
+"""
+	an easy way to fill zeros to increase bond in the nonsymmetric case
+"""
+function increase_bond!(psi::FiniteNonSymmetricMPS; D::Int)
+	S = spacetype(psi)
+	T = scalar_type(psi)
+	if bond_dimension(psi) < D
+		virtualpaces = max_bond_dimensions(psi, D)
+		for i in 1:length(psi)
+			psij = psi[i][]
+			sl = max(min(virtualpaces[i], D), size(psij, 1))
+			sr = max(min(virtualpaces[i+1], D), size(psij, 3))
+			m = zeros(T, sl, size(psij, 2), sr)
+			m[1:size(psij, 1), :, 1:size(psij, 3)] .= psij
+			psi[i] = TensorMap(m, S(Trivial()=>sl) ⊗ space(psi[i], 2), S(Trivial()=>sr))
+		end
+	end
+	return psi
+end
 

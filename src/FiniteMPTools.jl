@@ -10,7 +10,7 @@ export AbelianMatrix, abelian_matrix_from_dense
 
 # mps
 export AbstractMPS, FiniteMPS, iscanonical, canonicalize!, bond_dimension, bond_dimensions, distance2, distance, space_l, space_r, sector
-export physical_spaces, FiniteDensityOperatorMPS, DensityOperator, infinite_temperature_state, prodmps, randommps
+export physical_spaces, FiniteDensityOperatorMPS, DensityOperator, infinite_temperature_state, prodmps, randommps, increase_bond!
 
 # # infinitemps
 # export InfiniteMPS
@@ -50,6 +50,7 @@ export boson_matrices, spin_half_matrices, spin_matrices
 #default settings
 module Defaults
 	const maxiter = 100
+	const D = 50
 	const tolgauge = 1e-14
 	const tol = 1e-12
 	const verbosity = 1

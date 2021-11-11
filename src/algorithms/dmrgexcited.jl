@@ -10,6 +10,7 @@ end
 
 
 function leftsweep!(m::ProjectedExpectationCache, alg::DMRG1)
+	increase_bond!(m, D=alg.D)
 	mpo = m.mpo
 	mps = m.mps
 	hstorage = m.env
