@@ -11,6 +11,7 @@ export AbelianMatrix, abelian_matrix_from_dense
 # mps
 export AbstractMPS, FiniteMPS, iscanonical, canonicalize!, bond_dimension, bond_dimensions, distance2, distance, space_l, space_r, sector
 export physical_spaces, FiniteDensityOperatorMPS, DensityOperator, infinite_temperature_state, prodmps, randommps, increase_bond!
+export entropy, entropies
 
 # # infinitemps
 # export InfiniteMPS
@@ -69,6 +70,7 @@ include("auxiliary/stable_svd.jl")
 include("auxiliary/others.jl")
 
 include("auxiliary/abelianmatrix.jl")
+include("auxiliary/entropy.jl")
 
 # mps
 include("mps/abstractdefs.jl")

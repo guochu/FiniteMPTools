@@ -71,6 +71,17 @@ function LinearAlgebra.normalize!(psi::FiniteDensityOperatorMPS)
 end
 
 
+# Von neuman entropy
+
+"""
+    entropy(psi::FiniteMPS, bond::Int)
+"""
+function entropy(psi::FiniteMPS, bond::Int)
+    v = entanglement_spectrum(psi.s[bond+1])
+    return sum([-x^2*2*log(x) for x in v])
+end
+entropies(psi::FiniteMPS) = [entropy(psi, bond) for bond in 1:length(psi)-1]
+
 # # the function catdomain has to be generalized
 # _cat_mps_site_tensor(a, b) = permute(catcodomain(permute(a, (2,), (1,3)), permute(b, (2,), (1,3))), (2,), (1,3))
 # Base.:+(psiA::M, psiB::M) where {M <: FiniteMPS} = FiniteMPS([_cat_mps_site_tensor(a, b) for (a, b) in zip(raw_data(psiA), raw_data(psiB))])
