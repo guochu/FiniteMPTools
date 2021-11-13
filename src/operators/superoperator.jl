@@ -7,7 +7,7 @@ struct SuperOperatorBase{S <: EuclideanSpace, M<:MPOTensor, F}
 	fuser::F
 
 function SuperOperatorBase{S, M, F}(data::QuantumOperator, fuser::F) where {S <: EuclideanSpace, M<:MPOTensor, F}
-	((fuser === ⊗) || (fuser == ⊠)) || throw(ArgumentError("fuser must be ⊗ or ⊠."))
+	((fuser === ⊗) || (fuser === ⊠)) || throw(ArgumentError("fuser must be ⊗ or ⊠."))
 	new{S, M, F}(data, fuser)
 end
 
