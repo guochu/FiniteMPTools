@@ -64,6 +64,19 @@ function purified_thermal_state(h::Union{QuantumOperator, FiniteMPO}; β::Real, 
 	# return normalize!(state)
 	return state
 end
+function exact_purified_thermal_state(h::Union{QuantumOperator, FiniteMPO}; β::Real, kwargs...)
+	beta = convert(Float64, β) / 2
+	((beta >= 0.) && (beta != Inf)) || throw(ArgumentError("β expected to be finite."))	
+	state = _get_identity_state(h; kwargs...)
+	canonicalize!(state, normalize=true)
+	state = ExactFiniteMPS(state)
+	(beta == 0.) && return state
+	superh = purified_thermalize(h)
+
+	state = exact_timeevolution(FiniteMPO(superh), -beta, state, ishermitian=true)
+
+	return normalize!(state)
+end
 # thermal_state(h::Union{QuantumOperator, FiniteMPO}; kwargs...) = purified_thermal_state(h; kwargs...)
 
 

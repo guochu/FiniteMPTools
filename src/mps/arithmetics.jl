@@ -55,8 +55,12 @@ function LinearAlgebra.normalize!(psi::FiniteMPS; iscanonical::Bool=false)
     end
     return psi
 end
+function LinearAlgebra.normalize!(psi::ExactFiniteMPS)
+    normalize!(psi[psi.center])
+    return psi
+end
 LinearAlgebra.normalize(psi::FiniteMPS; iscanonical::Bool=false) = normalize!(copy(psi); iscanonical=iscanonical)
-
+LinearAlgebra.normalize(psi::ExactFiniteMPS) = normalize!(copy(psi))
 function LinearAlgebra.lmul!(f::Number, psi::FiniteMPS)
     if !isempty(psi)
         psi[1] *= f

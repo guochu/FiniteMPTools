@@ -42,7 +42,7 @@ export timeevo!, AbstractStepper, TEBDStepper, TDVPStepper, change_tspan_dt, TEB
 # two-time correlations
 export correlation_2op_1t, correlation_2op_1τ, exact_correlation_2op_1t, exact_correlation_2op_1τ 
 # thermal state
-export purified_thermalize, purified_infinite_temperature_state, purified_thermal_state
+export purified_thermalize, purified_infinite_temperature_state, purified_thermal_state, exact_purified_thermal_state
 
 # utilities
 export boson_matrices, spin_half_matrices, spin_matrices
