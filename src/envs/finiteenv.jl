@@ -83,9 +83,9 @@ end
 # 	end
 # end
 
-increase_bond!(m::ExpectationCache; D::Int) = nothing
-function increase_bond!(m::ExpectationCache{M, <:FiniteNonSymmetricMPS}; D::Int) where M
-	if bond_dimension(m.state) < D
+# increase_bond!(m::ExpectationCache; D::Int) = nothing
+function increase_bond!(m::ExpectationCache; D::Int) 
+	if isa(m.state, FiniteNonSymmetricMPS) && (bond_dimension(m.state) < D)
 		increase_bond!(m.state, D=D)
 		canonicalize!(m.state, normalize=false)
 		init_hstorage!(m.env, m.h, m.state, 1)
@@ -156,9 +156,8 @@ function updateright!(env::ProjectedExpectationCache, site::Int)
 	end
 end
 
-increase_bond!(m::ProjectedExpectationCache; D::Int) = nothing
-function increase_bond!(m::ProjectedExpectationCache{M, <:FiniteNonSymmetricMPS}; D::Int) where M
-	if bond_dimension(m.state) < D
+function increase_bond!(m::ProjectedExpectationCache; D::Int) 
+	if isa(m.state, FiniteNonSymmetricMPS) && (bond_dimension(m.state) < D)
 		increase_bond!(m.state, D=D)
 		canonicalize!(m.state, normalize=false)
 		init_hstorage!(m.env, m.h, m.state, 1)

@@ -347,8 +347,8 @@ function _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f; right=on
 
     p_f = [isomorphism(Matrix{T}, space(m, 2) ⊗ space(m, 4), fuse(space(m, 2), space(m, 4))) for m in r]
     l_f = PeriodicArray([isomorphism(Matrix{T}, fuse(space(m, 1), space(m, 3)), space(m, 1) ⊗ space(m, 3) ) for m in r])
-
     if f === ⊗
+
         # we should do something special at the end for ⊗
         # a sector has to be chosen, I choose the vacuum sector
         v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L-1]
@@ -358,14 +358,21 @@ function _otimes_n_a(x::Vector{<:MPOTensor}, y::Vector{<:MPOTensor}, f; right=on
             right_ts = isomorphism(Matrix{T}, right ⊗ space(r[i], 5)', space(r[i], 7) ) 
             @tensor tmp[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*right_ts[-3,5,7]*p_f[i][6,8,-4]        
         else
-             right_ts = isomorphism(Matrix{T}, fuse(space(r[i], 5), space(r[i], 7)) , space(r[i], 5) ⊗ space(r[i], 7) ) 
-            @tensor tmp[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*right_ts[-3,5,7]*p_f[i][6,8,-4]              
+            m = r[L]
+            right_ts = isomorphism(Matrix{T}, space(m, 5)' ⊗ space(m, 7)', fuse(space(m, 5)', space(m, 7)') )
+            @tensor tmp[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*right_ts[5,7,-3]*p_f[i][6,8,-4]              
         end
         push!(v, tmp)
+        return v
     else
-        v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L]
+        # in case of ⊠ it is trivial since there will never be mixing
+        v=[@tensor o[-1 -2; -3 -4] := l_f[i][-1,1,3]*r[i][1,2,3,4,5,6,7,8]*conj(p_f[i][2,4,-2])*conj(l_f[i+1][-3,5,7])*p_f[i][6,8,-4] for i in 1:L-1]
+        m = r[L]
+        right = isomorphism(Matrix{T}, space(m, 5)' ⊗ space(m, 7)', fuse(space(m, 5)', space(m, 7)') )
+        @tensor tmp[-1 -2; -3 -4] := l_f[L][-1,1,3]*r[L][1,2,3,4,5,6,7,8]*conj(p_f[L][2,4,-2])*right[5,7,-3]*p_f[L][6,8,-4]
+        push!(v, tmp)
+        return [v...]
     end
-    return v   
 end
 
 # we allow the case where x, y are nonstrict and f=⊗
@@ -373,9 +380,9 @@ function _otimes(x::FiniteMPO, y::ConjugateFiniteMPO, f; kwargs...)
     ((f === ⊠) || (f === ⊗)) || throw(ArgumentError("fuser should be ⊗ or ⊠."))
     (length(x) == length(y)) || throw(DimensionMismatch())
     yp = y.parent
-    if f === ⊠
-        (isstrict(x) && isstrict(yp)) || throw(ArgumentError("only strict MPOs allowed."))
-    end       
+    # if f === ⊠
+    #     (isstrict(x) && isstrict(yp)) || throw(ArgumentError("only strict MPOs allowed."))
+    # end       
     v = _otimes_n_a(raw_data(x), raw_data(yp), f; kwargs...)
     return FiniteMPO(v)
 end

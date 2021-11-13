@@ -10,6 +10,17 @@ function LinearAlgebra.dot(psiA::FiniteMPS, psiB::FiniteMPS)
     return tr(hold)
 end
 
+# function LinearAlgebra.dot(psiA::FiniteMPS, psiB::FiniteMPS) 
+#     (length(psiA) == length(psiB)) || throw(ArgumentError("dimension mismatch."))
+#     println("here ***************************")
+#     println(space_r(psiA))
+#     println(space_r(psiB))
+#     hold = r_RR(psiA, psiB)
+#     for i in length(psiA):-1:1
+#         hold = updateright(hold, psiA[i], psiB[i])
+#     end
+#     return tr(hold)
+# end
 
 function LinearAlgebra.norm(psi::FiniteMPS; iscanonical::Bool=false) 
 	iscanonical ? norm(psi[1]) : sqrt(real(dot(psi, psi)))

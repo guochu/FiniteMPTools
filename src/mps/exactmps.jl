@@ -99,7 +99,7 @@ function ExactFiniteMPS(f, ::Type{T}, physpaces::Vector{S}; sector::Sector= firs
 end
 
 function ExactFiniteMPS(psi::FiniteMPS)
-	isstrict(psi) || throw(ArgumentError("only strict mps allowed."))
+	# isstrict(psi) || throw(ArgumentError("only strict mps allowed."))
 	sr = space_r(psi)'
 	sector = first(sectors(sr))
 	target_psi, left, right, middle_site = _exactmps_side_tensors(scalar_type(psi), [space(item, 2) for item in raw_data(psi)], sector)

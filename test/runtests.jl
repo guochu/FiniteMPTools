@@ -729,4 +729,282 @@ end
 end
 
 
+println("-------------two time correlation------------------")
+
+function build_models_AB(h1s, h2s, p)
+	sp, sm, sz = p["+"], p["-"], p["z"]
+	terms = []
+	L = length(h1s)
+	for i in 1:L
+		push!(terms, QTerm(i=>sz, coeff=h1s[i]) )
+	end
+	h2 = randn(L-1)
+	for i in 1:(L-1)
+		t = QTerm(i=>sp, i+1=>sm, coeff=h2s[i])
+		push!(terms, t)
+		push!(terms, t')
+	end
+	ham = QuantumOperator([terms...])
+
+	sm_op = prodmpo(physical_spaces(ham), QTerm(1=>sm)) 
+
+	sp_op = prodmpo(physical_spaces(ham), QTerm(1=>sm)') 
+
+	return ham, sp_op, sm_op
+end
+
+function build_open_models_AB(h1s, h2s, p)
+	sp, sm, sz = p["+"], p["-"], p["z"]
+	terms = []
+	L = length(h1s)
+	h1 = randn(L)
+	for i in 1:L
+		push!(terms, QTerm(i=>sz, coeff=h1s[i]) )
+	end
+	h2 = randn(L-1)
+	for i in 1:(L-1)
+		t = QTerm(i=>sp, i+1=>sm, coeff=h2s[i])
+		push!(terms, t)
+		push!(terms, t')
+	end
+	ham = QuantumOperator([terms...])
+	lindblad = superoperator(-im * ham)
+
+	# add_dissipation!(lindblad, QTerm(2=>sz, coeff=0.9))
+
+	sm_op = prodmpo(physical_spaces(ham), QTerm(1=>sm)) 
+
+	sp_op = prodmpo(physical_spaces(ham), QTerm(1=>sm)') 
+
+	return lindblad, sp_op, sm_op
+end
+
+
+function check_twotime_corr()
+	L = 4
+	h1s = [0.2508648902536, -0.6949580074772713, -0.41523333387180145, -0.5090894962618974]
+	# h1s = zeros(2)
+	h2s = [-0.7153395702446729, -0.08398485202495319, -0.3995503327930961]
+	# h2s = ones(1)
+	init_state = [0 for i in 1:L]
+	init_state[1:2:L] .= 1
+	init_state_2 = [0 for i in 1:L]
+	init_state_2[2:2:L] .= 1
+	state = prodmps(ComplexF64, [2 for i in 1:L], init_state) + prodmps(ComplexF64, [2 for i in 1:L], init_state_2)
+	canonicalize!(state, normalize=true)
+
+	p = spin_half_matrices()
+	ts = [0., 0.05, 0.2, 0.56]
+	stepsize = 0.01
+	
+	function nsym_corr_t(reverse::Bool)
+		h, sp_op, sm_op, = build_models_AB(h1s, h2s, p)
+		corr = correlation_2op_1t(h, sp_op, sm_op, copy(state), ts, stepper=TEBDStepper(stepsize=stepsize), reverse=reverse)
+		return corr
+	end
+
+	function exact_nsym_corr_t(reverse::Bool)
+		h, sp_op, sm_op, = build_models_AB(h1s, h2s, p)
+		corr = exact_correlation_2op_1t(h, sp_op, sm_op, copy(state), ts, reverse=reverse)
+		return corr
+	end
+
+	function nsym_corr_τ(reverse::Bool)
+		h, sp_op, sm_op, = build_models_AB(h1s, h2s, p)
+		stepper = TDVPStepper(alg=TDVP2(stepsize=stepsize, ishermitian=false, trunc=MPSTruncation(D=20, ϵ=1.0e-6)))
+
+		corr = correlation_2op_1τ(h, sp_op, sm_op, copy(state), ts, stepper=stepper, reverse=reverse)
+		return corr
+	end
+
+	function exact_nsym_corr_τ(reverse::Bool)
+		h, sp_op, sm_op, = build_models_AB(h1s, h2s, p)
+		corr = exact_correlation_2op_1τ(h, sp_op, sm_op, copy(state), ts, reverse=reverse)
+		return corr
+	end
+
+	function open_nsym_corr(reverse::Bool)
+		h, sp_op, sm_op = build_open_models_AB(h1s, h2s, p)
+		# rho = increase_bond!(DensityOperator(state), D=20)
+		# canonicalize!(rho)
+		rho = DensityOperator(state)
+		canonicalize!(rho, normalize=false)
+		stepper = TDVPStepper(alg=TDVP1(D=20, stepsize=stepsize, ishermitian=false))
+		corr = correlation_2op_1t(h, sp_op, sm_op, rho, ts, stepper=stepper, reverse=reverse)
+		return corr
+	end
+
+	function exact_open_nsym_corr(reverse::Bool)
+		h, sp_op, sm_op = build_open_models_AB(h1s, h2s, p)
+		# rho = increase_bond!(DensityOperator(state), D=20)
+		# canonicalize!(rho)
+		rho = DensityOperator(state)
+		canonicalize!(rho, normalize=false)
+		corr = exact_correlation_2op_1t(h, sp_op, sm_op, rho, ts, reverse=reverse)
+		return corr
+	end
+
+	Errs = Float64[]
+	for m in [true, false]
+		push!(Errs, maximum(abs.(nsym_corr_t(m) - open_nsym_corr(m))))
+		push!(Errs, maximum(abs.(nsym_corr_t(m) - exact_nsym_corr_t(m))))
+		push!(Errs, maximum(abs.(nsym_corr_τ(m) - exact_nsym_corr_τ(m))))
+		push!(Errs, maximum(abs.(open_nsym_corr(m) - exact_open_nsym_corr(m))))
+	end
+
+
+	return maximum(Errs) 
+end
+
+
+function corr_hubbard_ladder(L, J1, J2, U, p)
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+
+	adagJW = adag * JW
+	a = adag'
+
+	terms = []
+	for i in 1:L
+		push!(terms, QTerm(i => nn, coeff=U))
+	end
+	for i in 1:L-1
+		m = QTerm(i=>adagJW, i+1=>a, coeff=-J1)
+		push!(terms, m)
+		push!(terms, m')
+	end
+	for i in 1:L-2
+		m = QTerm(i=>adagJW, i+1=>JW, i+2=>a, coeff=-J2)
+		push!(terms, m)
+		push!(terms, m')
+	end
+
+	creation = QTerm(2=>adag)
+	annihilation = creation'
+
+	ham = QuantumOperator([terms...])
+
+	return ham, prodmpo(physical_spaces(ham), creation), prodmpo(physical_spaces(ham), annihilation) 
+end
+
+function corr_initial_state(L)
+	physpace = Rep[U₁×SU₂]((-0.5, 0)=>1, (0.5, 0)=>1, (0, 0.5)=>1)
+
+	init_state = [(-0.5, 0) for i in 1:L]
+	for i in 2:2:L
+		init_state[i] = (0.5, 0)
+	end
+	n = sum([item[1] for item in init_state])
+
+	right = Rep[U₁×SU₂]((n, 0)=>1)
+	state = prodmps(ComplexF64, physpace, init_state, right=right )
+
+	init_state = [(-0.5, 0) for i in 1:L]
+	for i in 1:2:L
+		init_state[i] = (0.5, 0)
+	end
+	n = sum([item[1] for item in init_state])
+
+	right = Rep[U₁×SU₂]((n, 0)=>1)
+
+	state = state + prodmps(ComplexF64, physpace, init_state, right=right )
+
+	canonicalize!(state, normalize=true)
+	return state
+end
+
+function check_sym_twotime_corr(L)
+	J1 = 1.
+	J2 = 0.5
+	U = 1.2
+	p = FiniteMPTools.spinal_fermion_site_ops_u1_su2()
+
+	h, sp_op, sm_op = corr_hubbard_ladder(L, J1, J2, U, p)
+
+	state = corr_initial_state(L)
+
+	canonicalize!(state, normalize=true)
+
+	ts = [0., 0.02, 0.05]
+	stepsize = 0.01
+	
+	function nsym_corr_t(reverse::Bool)
+		corr = correlation_2op_1t(h, sp_op, sm_op, copy(state), ts, stepper=TEBDStepper(stepsize=stepsize), reverse=reverse)
+		return corr
+	end
+
+	function exact_nsym_corr_t(reverse::Bool)
+		corr = exact_correlation_2op_1t(h, sp_op, sm_op, copy(state), ts, reverse=reverse)
+		return corr
+	end
+
+	function nsym_corr_τ(reverse::Bool)
+		corr = correlation_2op_1τ(h, sp_op, sm_op, copy(state), ts, stepper=TEBDStepper(stepsize=stepsize), reverse=reverse)
+		return corr
+	end
+
+	function exact_nsym_corr_τ(reverse::Bool)
+		corr = exact_correlation_2op_1τ(h, sp_op, sm_op, copy(state), ts, reverse=reverse)
+		return corr
+	end
+
+	function open_nsym_corr_a(reverse::Bool)
+		lin = superoperator(-im * h)
+		rho = DensityOperator(state)
+		canonicalize!(rho, normalize=false)
+		stepper = TDVPStepper(alg=TDVP2(stepsize=stepsize, ishermitian=false, trunc=MPSTruncation(D=50, ϵ=1.0e-6)))
+		corr = correlation_2op_1t(lin, sp_op, sm_op, rho, ts, stepper=stepper, reverse=reverse)
+		return corr
+	end
+
+	function exact_open_nsym_corr_a(reverse::Bool)
+		lin = superoperator(-im * h)
+		rho = DensityOperator(state)
+		canonicalize!(rho, normalize=false)
+		stepper = TDVPStepper(alg=TDVP2(stepsize=stepsize, ishermitian=false, trunc=MPSTruncation(D=50, ϵ=1.0e-6)))
+		corr = correlation_2op_1t(lin, sp_op, sm_op, rho, ts, stepper=stepper, reverse=reverse)
+		return corr
+	end
+
+	function open_nsym_corr_b(reverse::Bool)
+		lin = superoperator(-im * h, fuser=⊗)
+		rho = DensityOperator(state, fuser=⊗)
+		canonicalize!(rho, normalize=false)
+		stepper = TDVPStepper(alg=TDVP2(stepsize=stepsize, ishermitian=false, trunc=MPSTruncation(D=50, ϵ=1.0e-6)))
+		corr = correlation_2op_1t(lin, sp_op, sm_op, rho, ts, stepper=stepper, reverse=reverse)
+		return corr
+	end
+
+	function exact_open_nsym_corr_b(reverse::Bool)
+		lin = superoperator(-im * h, fuser=⊗)
+		rho = DensityOperator(state, fuser=⊗)
+		canonicalize!(rho, normalize=false)
+		stepper = TDVPStepper(alg=TDVP2(stepsize=stepsize, ishermitian=false, trunc=MPSTruncation(D=50, ϵ=1.0e-6)))
+		corr = correlation_2op_1t(lin, sp_op, sm_op, rho, ts, stepper=stepper, reverse=reverse)
+		return corr
+	end
+
+	Errs = Float64[]
+	for m in [true, false]
+		push!(Errs, maximum(abs.(nsym_corr_t(m) - open_nsym_corr_a(m))))
+		push!(Errs, maximum(abs.(open_nsym_corr_a(m) - open_nsym_corr_b(m) )))
+		push!(Errs, maximum(abs.(open_nsym_corr_a(m) - exact_open_nsym_corr_a(m) )))
+		push!(Errs, maximum(abs.(exact_open_nsym_corr_a(m) - exact_open_nsym_corr_b(m) )))
+		push!(Errs, maximum(abs.(nsym_corr_t(m) - exact_nsym_corr_t(m))))
+		push!(Errs, maximum(abs.(nsym_corr_τ(m) - exact_nsym_corr_τ(m))))
+		push!(Errs, maximum(abs.(open_nsym_corr_a(m) - exact_open_nsym_corr_a(m))))
+		push!(Errs, maximum(abs.(open_nsym_corr_b(m) - exact_open_nsym_corr_b(m))))
+	end
+
+	# println(exact_open_nsym_corr_a(true))
+	return maximum(Errs) 
+end
+
+@testset "non-symmetric two-time correlation" begin
+	@test check_twotime_corr() < 1.0e-4
+end
+
+@testset "symmetric two-time correlation" begin
+	@test check_sym_twotime_corr(4) < 1.0e-4
+end
+
 

@@ -40,7 +40,7 @@ export ExactFiniteMPS, exact_diagonalization, exact_timeevolution
 # time evolve stepper
 export timeevo!, AbstractStepper, TEBDStepper, TDVPStepper, change_tspan_dt, TEBDCache, TDVPCache, timeevo_cache
 # two-time correlations
-export correlation_2op_1t, exact_correlation_2op_1t, correlation_2op_1τ
+export correlation_2op_1t, correlation_2op_1τ, exact_correlation_2op_1t, exact_correlation_2op_1τ 
 # thermal state
 export purified_thermalize, purified_infinite_temperature_state, purified_thermal_state
 

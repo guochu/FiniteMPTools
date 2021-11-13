@@ -1,4 +1,5 @@
 # two time correlation for pure state and density matrices
+# the complexity arises from the fact that the A, B operators may change the sector of the state
 
 _to_n(x::AdjointFiniteMPO) = FiniteMPO(mpo_tensor_adjoint.(raw_data(x.parent)))
 _to_a(x::FiniteMPO) = adjoint(FiniteMPO(mpo_tensor_adjoint.(raw_data(x))))
@@ -26,7 +27,7 @@ function _unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, time
 			state_right, cache_right = timeevo!(state_right, h, stepper_right, cache_right)
 			# println("step size $(cache_left.stepper.stepsize), $(cache_right.stepper.stepsize)")
 		end
-		push!(result, dot(A' * state_left, state_right))
+		push!(result, dot(A' * state_left, state_right) / dim(space_r(state_right)) )
 	end
 	return result
 end
@@ -51,7 +52,7 @@ function _unitary_tt_corr_a_bt(h, A::AdjointFiniteMPO, B::FiniteMPO, state, time
 			state_left, cache_left = timeevo!(state_left, h, stepper_left, cache_left)
 			state_right, cache_right = timeevo!(state_right, h, stepper_right, cache_right)
 		end
-		push!(result, expectation(state_left, B, state_right))
+		push!(result, expectation(state_left, B, state_right) / dim(space_r(state_left)) )
 	end
 	return result
 end
@@ -125,17 +126,19 @@ function _open_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, times, 
 			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
 			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
 		end
-		push!(result, dot(A' * state_right.I, state_right.data) )
+		push!(result, dot(A' * state_right.I, state_right.data) / dim(space_r(state_right)) )
 	end
 	return result
 end 
 
-function _open_tt_corr_a_bt(h, A::FiniteMPO, B::AdjointFiniteMPO, state, times, stepper)
+function _open_tt_corr_a_bt(h, A::FiniteMPO, B::FiniteMPO, state, times, stepper)
 	state_right = A * state
 	canonicalize!(state_right)
+	fuser = h.fuser
 
 	result = scalar_type(state_right)[]
 	local cache_right
+	local iden
 	for i in 1:length(times)	
 		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
 		if tspan[2] - tspan[1] > 0.
@@ -143,7 +146,17 @@ function _open_tt_corr_a_bt(h, A::FiniteMPO, B::AdjointFiniteMPO, state, times, 
 			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper, state_right))
 			state_right, cache_right = timeevo!(state_right, h, stepper, cache_right)
 		end
-		push!(result, dot(B' * state_right.I, state_right.data) )
+		# push!(result, dot(B' * state_right.I, state_right.data) )
+		
+		# (@isdefined iden) || iden =  
+		if fuser === ⊠
+			tmp = B * state_right.data
+			(@isdefined iden) || (iden = _boxtimes_iden_mps(scalar_type(tmp), physical_spaces(tmp), space_l(tmp), space_r(tmp)'))
+			push!(result, dot(iden, tmp) / dim(space_r(tmp)) )
+		else
+			# we need to multiply frobeniusschur factor here since one of the operator is inverted 
+			push!(result, dot(_to_a(B)' * state_right.I, state_right.data) * frobeniusschur(sector(state_right.data)) / dim(space_r(state_right)) )
+		end
 	end
 	return result
 end 
@@ -164,7 +177,7 @@ function correlation_2op_1t(h::SuperOperatorBase, a::AdjointFiniteMPO, b::Finite
 	iden = id(b)
 	mpo_b = h.fuser(b, conj(iden), right=nothing)
 	if reverse
-		return _open_tt_corr_a_bt(h, h.fuser(iden, conj(a'), right=nothing), _to_a(mpo_b), state, times, stepper)
+		return _open_tt_corr_a_bt(h, h.fuser(iden, conj(a'), right=nothing), mpo_b, state, times, stepper)
 	else
 		return _open_tt_corr_at_b(h, adjoint(h.fuser(a', conj(iden), right=nothing)), mpo_b, state, times, stepper)
 	end
@@ -178,17 +191,19 @@ function _exact_unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state
 
 	state_left = ExactFiniteMPS(state_left)
 	state_right = ExactFiniteMPS(state_right)
-	(state_left.center == state_right.center) || error("something wrong.")
-	left, right = init_h_center(h, state_right)
+	# (state_left.center == state_right.center) || error("something wrong.")
+	sr_hleft, sr_hright = init_h_center(h, state_right)
+	sl_hleft, sl_hright = init_h_center(h, state_left)
 
 	result = scalar_type(state)[]
 	for i in 1:length(times)	
-		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
-		if abs(tspan[2] - tspan[1]) > 0.
-			state_left = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_left, left, right, ishermitian=true)
-			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=true)
+		tspan_right = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
+		tspan_left = _time_reversal(tspan_right)
+		if abs(tspan_right[2] - tspan_right[1]) > 0.
+			state_left = _exact_timeevolution_util(h, tspan_left[2]-tspan_left[1], state_left, sl_hleft, sl_hright, ishermitian=true)
+			state_right = _exact_timeevolution_util(h, tspan_right[2]-tspan_right[1], state_right, sr_hleft, sr_hright, ishermitian=true)
 		end
-		push!(result, dot(A' * FiniteMPS(state_left), FiniteMPS(state_right)))
+		push!(result, dot(A' * FiniteMPS(state_left), FiniteMPS(state_right)) / dim(space_r(state_right)) )
 	end
 	return result
 end
@@ -201,18 +216,20 @@ function _exact_unitary_tt_corr_a_bt(h, A::AdjointFiniteMPO, B::FiniteMPO, state
 
 	state_left = ExactFiniteMPS(state_left)
 	state_right = ExactFiniteMPS(state_right)
-	(state_left.center == state_right.center) || error("something wrong.")
-	left, right = init_h_center(h, state_right)
+	# (state_left.center == state_right.center) || error("something wrong.")
+	sr_hleft, sr_hright = init_h_center(h, state_right)
+	sl_hleft, sl_hright = init_h_center(h, state_left)
 
 	result = scalar_type(state)[]
 	local cache_left, cache_right	
 	for i in 1:length(times)	
-		tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
-		if abs(tspan[2] - tspan[1]) > 0.
-			state_left = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_left, left, right, ishermitian=true)
-			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=true)
+		tspan_right = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
+		tspan_left = _time_reversal(tspan_right)
+		if abs(tspan_right[2] - tspan_right[1]) > 0.
+			state_left = _exact_timeevolution_util(h, tspan_left[2]-tspan_left[1], state_left, sl_hleft, sl_hright, ishermitian=true)
+			state_right = _exact_timeevolution_util(h, tspan_right[2]-tspan_right[1], state_right, sr_hleft, sr_hright, ishermitian=true)
 		end
-		push!(result, expectation(FiniteMPS(state_left), B, FiniteMPS(state_right)))
+		push!(result, expectation(FiniteMPS(state_left), B, FiniteMPS(state_right)) / dim(space_r(state_left)) )
 	end
 	return result
 end
@@ -220,10 +237,21 @@ _exact_unitary_tt_corr_a_bt(h, A::FiniteMPO, B::AdjointFiniteMPO, state, times) 
 
 # exact diagonalization, used for small systems or debug
 function exact_correlation_2op_1t(h::AbstractMPO, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real}; reverse::Bool=false)
+	if scalar_type(state) <: Real
+		state = complex(state)
+	end
+	times = -im .* times
 	reverse ? _exact_unitary_tt_corr_a_bt(h, a, b, state, times) : _exact_unitary_tt_corr_at_b(h, a, b, state, times)
 end
 function exact_correlation_2op_1t(h::QuantumOperator, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real}; reverse::Bool=false)
 	return exact_correlation_2op_1t(FiniteMPO(h), a, b, state, times, reverse=reverse)
+end
+function exact_correlation_2op_1τ(h::AbstractMPO, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real}; reverse::Bool=false)
+	times = -times
+	reverse ? _exact_unitary_tt_corr_a_bt(h, a, b, state, times) : _exact_unitary_tt_corr_at_b(h, a, b, state, times)
+end
+function exact_correlation_2op_1τ(h::QuantumOperator, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real}; reverse::Bool=false)
+	return exact_correlation_2op_1τ(FiniteMPO(h), a, b, state, times, reverse=reverse)
 end
 
 # function _exact_open_tt_corr_util(h, A, B, C, state, times)
@@ -251,11 +279,13 @@ end
 # 	return result
 # end
 
-function _exact_open_tt_corr_at_b(h, A, B, state, times)
-	state_right = A * state
-	state_right = ExactFiniteMPS(state_right.data)
-	left, right = init_h_center(h, state_right)
 
+function _exact_open_tt_corr_at_b(h, A, B, state, times)
+	state_right = B * state
+	state_right = ExactFiniteMPS(state_right.data)
+	
+
+	left, right = init_h_center(h, state_right)
 	result = scalar_type(state)[]
 	for i in 1:length(times)
 		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
@@ -263,24 +293,34 @@ function _exact_open_tt_corr_at_b(h, A, B, state, times)
 			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=false)
 		end
 		# push!(result, expectation(B, FiniteDensityOperatorMPS(FiniteMPS(state_right), state.fusers, state.I)))
-		push!(result, dot(B' * state.I, FiniteMPS(state_right) ) )
+		push!(result, dot(A' * state.I, FiniteMPS(state_right)) / dim(space_r(state_right)) )
 	end
 	return result
 end
 
-function _exact_open_tt_corr_a_bt(h, A, B, state, times)
-	state_right = B * state
+function _exact_open_tt_corr_a_bt(h, A::FiniteMPO, B::FiniteMPO, state, times, fuser)
+	state_right = A * state
 	state_right = ExactFiniteMPS(state_right.data)
-
 	left, right = init_h_center(h, state_right)
+	# fuser = h.fuser
+
 	result = scalar_type(state)[]
+	local iden
 	for i in 1:length(times)
 		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
 		if tspan[2] - tspan[1] > 0.
 			state_right = _exact_timeevolution_util(h, tspan[2]-tspan[1], state_right, left, right, ishermitian=false)
 		end
 		# push!(result, expectation(B, FiniteDensityOperatorMPS(FiniteMPS(state_right), state.fusers, state.I)))
-		push!(result, dot(A' * state.I, FiniteMPS(state_right) ) )
+		# push!(result, dot(B' * state.I, FiniteMPS(state_right) ) )
+
+		if fuser === ⊠
+			tmp = B * FiniteMPS(state_right)
+			(@isdefined iden) || (iden = _boxtimes_iden_mps(scalar_type(tmp), physical_spaces(tmp), space_l(tmp), space_r(tmp)'))
+			push!(result, dot(iden, tmp) / dim(space_r(tmp)) )
+		else
+			push!(result, dot(_to_a(B)' * state.I, FiniteMPS(state_right)) * frobeniusschur(sector(state_right)) / dim(space_r(state_right)) )
+		end
 	end
 	return result
 end
@@ -289,9 +329,9 @@ function exact_correlation_2op_1t(h::SuperOperatorBase, a::AdjointFiniteMPO, b::
 	iden = id(b)
 	mpo_b = h.fuser(b, conj(iden), right=nothing)
 	if reverse
-		return _exact_open_tt_corr_at_b(FiniteMPO(h), h.fuser(iden, conj(a'), right=nothing), _to_a(mpo_b), state, times)
+		return _exact_open_tt_corr_a_bt(FiniteMPO(h), h.fuser(iden, conj(a'), right=nothing), mpo_b, state, times, h.fuser)
 	else
-		return _exact_open_tt_corr_a_bt(FiniteMPO(h), adjoint(h.fuser(a', conj(iden), right=nothing)), mpo_b, state, times)
+		return _exact_open_tt_corr_at_b(FiniteMPO(h), adjoint(h.fuser(a', conj(iden), right=nothing)), mpo_b, state, times)
 	end
 end
 exact_correlation_2op_1t(h::SuperOperatorBase, a::FiniteMPO, b::AdjointFiniteMPO, state::FiniteDensityOperatorMPS, times::Vector{<:Real}; kwargs...) = exact_correlation_2op_1t(
