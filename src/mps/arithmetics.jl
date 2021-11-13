@@ -89,7 +89,17 @@ end
 """
 function entropy(psi::FiniteMPS, bond::Int)
     v = entanglement_spectrum(psi.s[bond+1])
-    return sum([-x^2*2*log(x) for x in v])
+    for i in 1:length(v)
+        v[i] = (v[i])^2
+    end
+    # normalize the singular values
+    v ./= sum(v)
+    # return sum([-x^2*2*log(x) for x in v])
+    r = zero(eltype(v))
+    for x in v
+        r += -x * log(x)
+    end
+    return r
 end
 entropies(psi::FiniteMPS) = [entropy(psi, bond) for bond in 1:length(psi)-1]
 
