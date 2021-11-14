@@ -58,7 +58,7 @@ end
 
 function _change_stepsize(x::TDVP1, stepsize::Number)
 	if !(x.stepsize ≈ stepsize)
-		x = TDVP1(stepsize=stepsize, ishermitian=x.ishermitian, verbosity=x.verbosity)
+		x = TDVP1(stepsize=stepsize, D=x.D, ishermitian=x.ishermitian, verbosity=x.verbosity)
 	end
 	return x
 end
