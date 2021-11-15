@@ -89,6 +89,7 @@ function Base.complex(psi::FiniteMPS)
 			return FiniteMPS(data, raw_singular_matrices(psi))
 		end
 	end
+	return psi
 end
 
 function _svectors_uninitialized(x)
