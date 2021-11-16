@@ -24,12 +24,12 @@ end
 """
 boson_hubbard_chain(L::Int; d::Int=5, kwargs...) = boson_hubbard_chain_util(L, Dict(k=>abelian_matrix_from_dense(v) for (k, v) in boson_matrices(d=d)); kwargs...)
 
-function heisenberg_xxz_util(L::Int, p; J::Real, Jzz::Real, h::Real)
+function heisenberg_xxz_util(L::Int, p; J::Real, Jzz::Real, hz::Real)
     sp, sm, z = p["+"], p["-"], p["z"]
     terms = []
     # one site terms
     for i in 1:L
-        push!(terms, QTerm(i=>z, coeff=h))
+        push!(terms, QTerm(i=>z, coeff=hz))
     end
     # nearest-neighbour interactions
     for i in 1:L-1
@@ -46,12 +46,12 @@ end
 """
 heisenberg_xxz_chain(L::Int; kwargs...) = heisenberg_xxz_util(L, Dict(k=>abelian_matrix_from_dense(v) for (k, v) in spin_half_matrices()); kwargs...)
 
-function boundary_driven_xxz_util(L::Int, p; J::Real, Jzz::Real, h::Real, nl::Real, Λl::Real, nr::Real, Λr::Real, Λp::Real)
+function boundary_driven_xxz_util(L::Int, p; J::Real, Jzz::Real, hz::Real, nl::Real, Λl::Real, nr::Real, Λr::Real, Λp::Real)
 	(nl >=0 && nl <=1) || error("nl must be between 0 and 1.")
 	(nr >=0 && nr <=1) || error("nr must be between 0 and 1.")
 	(Λl >=0 && Λr >= 0 && Λp>= 0) || error("Λ should not be negative.")
 	sp, sm, sz = p["+"], p["-"], p["z"]
-	lindblad = superoperator(-im * heisenberg_xxz_util(L, p; J=J, Jzz=Jzz, h=h), fuser=⊗)
+	lindblad = superoperator(-im * heisenberg_xxz_util(L, p; J=J, Jzz=Jzz, hz=hz), fuser=⊗)
 
 	gammal_plus = Λl*nl
 	gammal_minus = Λl*(1-nl)

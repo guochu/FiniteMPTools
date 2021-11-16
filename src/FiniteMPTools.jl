@@ -150,14 +150,46 @@ include("utilities/boson_siteops.jl")
 include("utilities/fermion_siteops.jl")
 include("utilities/models.jl")
 
+function build_ham(p)
+	L = 3
+	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adagJW = adag * JW
+	a = adag'
+	U = 1.2
+	J = 1.
 
-# function _precompile_()
-# 	@assert precompile(spinal_fermion_site_ops_u1_su2, ())
-# 	@assert precompile(spinal_fermion_site_ops_u1_u1, ())
-# 	@assert precompile(spinal_fermion_site_ops_dense, ())
-# 	# ph = Rep[U₁×SU₂]((-0.5, 0)=>1, (0.5, 0)=>1, (0, 0.5)=>1)
-# end
+	terms = []
+	for i in 1:L
+		push!(terms, QTerm(i => nn, coeff=U))
+	end
+	for i in 1:L-1
+		m = QTerm(i=>adagJW, i+1=>a, coeff=-J)
+		push!(terms, m)
+		push!(terms, m')
+	end
+	ham = QuantumOperator([terms...])
+	mpo = FiniteMPO(ham)
+end
 
-# _precompile_()
+function _precompile_()
+	# @assert precompile(spinal_fermion_site_ops_u1_su2, ())
+	# @assert precompile(spinal_fermion_site_ops_u1_u1, ())
+	# @assert precompile(spinal_fermion_site_ops_dense, ())
+
+	# state initialization
+	ph = Rep[U₁×SU₂]((-0.5, 0)=>1, (0.5, 0)=>1, (0, 0.5)=>1)
+	state = prodmps(ComplexF64, [ph for i in 1:2], [(-0.5, 0), (0.5, 0)])
+	canonicalize!(state, normalize=true)
+	state = prodmps(Float64, [2,2], [0, 1])
+	state = randommps(ComplexF64, 5, d=2, D=3)
+	canonicalize!(state, normalize=false)
+	# hamiltonian and mpo
+	build_ham(spinal_fermion_site_ops_u1_su2())
+	build_ham(spinal_fermion_site_ops_u1_u1())
+	build_ham(spinal_fermion_site_ops_dense())
+
+end
+
+_precompile_()
 
 end
