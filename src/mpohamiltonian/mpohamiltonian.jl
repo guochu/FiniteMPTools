@@ -100,6 +100,7 @@ end
 
 function FiniteMPO(h::MPOHamiltonian{S, M, T}, L::Int) where {S, M, T}
 	(mod(L, period(h)) == 0) || throw(DimensionMismatch())
+	(L >= 2) || throw(ArgumentError("size of FiniteMPO must at least be 2."))
 	mpotensors = Vector{M}(undef, L)
 	embedders = PeriodicArray([right_embedders(T, h[i].omspaces...) for i in 1:period(h)])
 
