@@ -858,7 +858,7 @@ end
 
 
 function corr_hubbard_ladder(L, J1, J2, U, p)
-	adag, nn, JW = p["+"], p["n↑n↓"], p["JW"]
+	adag, pp, nn, JW = p["+"], p["++"], p["n↑n↓"], p["JW"]
 
 	adagJW = adag * JW
 	a = adag'
@@ -871,11 +871,17 @@ function corr_hubbard_ladder(L, J1, J2, U, p)
 		m = QTerm(i=>adagJW, i+1=>a, coeff=-J1)
 		push!(terms, m)
 		push!(terms, m')
+		m = QTerm(i=>pp, i+1=>pp', coeff=-J1)
+		push!(terms, m)
+		push!(terms, m')		
 	end
 	for i in 1:L-2
 		m = QTerm(i=>adagJW, i+1=>JW, i+2=>a, coeff=-J2)
 		push!(terms, m)
 		push!(terms, m')
+		# m = QTerm(i=>pp, i+2=>pp', coeff=-J2)
+		# push!(terms, m)
+		# push!(terms, m')
 	end
 
 	creation = QTerm(2=>adag)

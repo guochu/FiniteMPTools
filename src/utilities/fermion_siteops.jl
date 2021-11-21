@@ -20,8 +20,11 @@ function spinal_fermion_site_ops_u1_su2()
 	# blocks(adagJW)[Irrep[U₁](0) ⊠ Irrep[SU₂](0.5)] = ones(1,1)
 	# blocks(adagJW)[Irrep[U₁](0.5) ⊠ Irrep[SU₂](0)] = -sqrt(2) * ones(1,1) 
 
+	bhr = Rep[U₁×SU₂]((1, 0)=>1)
+	adagadag = TensorMap(ones, Float64, vh ⊗ ph ← bhr ⊗ ph)
+
 	n = ScalarSiteOp(SiteOp(adag) * SiteOp(adag)')
-	return Dict("+"=>SiteOp(adag), "n↑n↓"=>ScalarSiteOp(onsite_interact), "JW"=>ScalarSiteOp(JW), "n"=>n)
+	return Dict("+"=>SiteOp(adag), "++"=>SiteOp(adagadag), "n↑n↓"=>ScalarSiteOp(onsite_interact), "JW"=>ScalarSiteOp(JW), "n"=>n)
 end
 
 function spinal_fermion_site_ops_u1_u1()
@@ -39,8 +42,10 @@ function spinal_fermion_site_ops_u1_u1()
 
 	adag = adagup + adagdown
 
+	adagadag = SiteOp(_convert_to_tensor_map(kron(sp*JW1, sp))[1])
+
 	occupy = ScalarSiteOp(adag * adag')
-	return Dict("+"=>adag, "n↑n↓"=>ScalarSiteOp(_convert_to_tensor_map(kron(n, n))[1]), "JW"=>ScalarSiteOp(_convert_to_tensor_map(kron(JW1, JW1))[1]), "n"=>occupy)
+	return Dict("+"=>adag, "++"=>adagadag, "n↑n↓"=>ScalarSiteOp(_convert_to_tensor_map(kron(n, n))[1]), "JW"=>ScalarSiteOp(_convert_to_tensor_map(kron(JW1, JW1))[1]), "n"=>occupy)
 end
 
 function spinal_fermion_site_ops_dense()
@@ -57,7 +62,9 @@ function spinal_fermion_site_ops_dense()
 
 	adag = adagup + adagdown
 
+	adagadag = SiteOp(kron(sp*JW1, sp))
+
 	occupy = ScalarSiteOp(adag * adag')
-	return Dict("+"=>adag, "n↑n↓"=>ScalarSiteOp(kron(n, n)), "JW"=>ScalarSiteOp(kron(JW1, JW1)), "n"=>occupy)
+	return Dict("+"=>adag, "++"=>adagadag, "n↑n↓"=>ScalarSiteOp(kron(n, n)), "JW"=>ScalarSiteOp(kron(JW1, JW1)), "n"=>occupy)
 end
 
