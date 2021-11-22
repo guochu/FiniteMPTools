@@ -58,7 +58,54 @@ function _unitary_tt_corr_a_bt(h, A::AdjointFiniteMPO, B::FiniteMPO, state, time
 end
 _unitary_tt_corr_a_bt(h, A::FiniteMPO, B::AdjointFiniteMPO, state, times, stepper) = _unitary_tt_corr_a_bt(h, _to_a(A), _to_n(B), state, times, stepper)
 
+# in case one knows the state is a ground state
+function _gs_unitary_tt_corr_at_b(h, A::AdjointFiniteMPO, B::FiniteMPO, state, gs_E::Real, times, stepper)
+	state_right = B * state
+	canonicalize!(state_right)
+	state_left = state
 
+	result = scalar_type(state)[]
+	local cache_left, cache_right	
+	for i in 1:length(times)	
+		# println("state norm $(norm(state_left)), $(norm(state_right)).")
+		# tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
+		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
+		# tspan_left = _time_reversal(tspan)
+		if abs(tspan[2] - tspan[1]) > 0.
+			stepper_right = change_tspan_dt(stepper, tspan=tspan)
+			(@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper_right, state_right))
+			state_right, cache_right = timeevo!(state_right, h, stepper_right, cache_right)
+		end
+		push!(result, exp( -(times[i]) * gs_E) * dot(A' * state_left, state_right) / dim(space_r(state_right)) )
+	end
+	return result
+end
+_gs_unitary_tt_corr_at_b(h, A::FiniteMPO, B::AdjointFiniteMPO, state, gs_E::Real, times, stepper) = _gs_unitary_tt_corr_at_b(
+	h, _to_a(A), _to_n(B), state, gs_E, times, stepper)
+
+function _gs_unitary_tt_corr_a_bt(h, A::AdjointFiniteMPO, B::FiniteMPO, state, gs_E::Real, times, stepper)
+	state_right = copy(state)
+	state_left = A' * state
+	canonicalize!(state_left)
+
+	result = scalar_type(state)[]
+	local cache_left, cache_right	
+	for i in 1:length(times)	
+		# tspan = (i == 1) ? (0., -im*times[1]) : (-im*times[i-1], -im*times[i])
+		tspan = (i == 1) ? (0., times[1]) : (times[i-1], times[i])
+		if abs(tspan[2] - tspan[1]) > 0.
+			# stepper_right = change_tspan_dt(stepper, tspan=tspan)
+			stepper_left = change_tspan_dt(stepper, tspan=_time_reversal(tspan))
+			(@isdefined cache_left) || (cache_left = timeevo_cache(h, stepper_left, state_left))
+			# (@isdefined cache_right) || (cache_right = timeevo_cache(h, stepper_right, state_right))
+			state_left, cache_left = timeevo!(state_left, h, stepper_left, cache_left)
+			# state_right, cache_right = timeevo!(state_right, h, stepper_right, cache_right)
+		end
+		push!(result, exp( times[i] * gs_E ) * expectation(state_left, B, state_right) / dim(space_r(state_left)) )
+	end
+	return result
+end
+_gs_unitary_tt_corr_a_bt(h, A::FiniteMPO, B::AdjointFiniteMPO, state, gs_E::Real, times, stepper) = _gs_unitary_tt_corr_a_bt(h, _to_a(A), _to_n(B), state, gs_E, times, stepper)
 
 """
 	correlation_2op_1t(h::QuantumOperator, a::QuantumOperator, b::QuantumOperator, state::FiniteMPS, times::Vector{<:Real}, stepper::AbstractStepper; 
@@ -77,6 +124,20 @@ function correlation_2op_1t(h::Union{QuantumOperator, AbstractMPO}, a::AbstractM
 end
 
 """
+	gs_correlation_2op_1t(h::Union{QuantumOperator, AbstractMPO}, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real}; kwargs...)
+	ground state two-time correlation
+"""
+function gs_correlation_2op_1t(h::Union{QuantumOperator, AbstractMPO}, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real};
+	stepper::AbstractStepper=TEBDStepper(tspan=(0., 0.01), stepsize=0.01), 
+	gs_energy::Real = real(expectation(h, state)), reverse::Bool=false)
+	if scalar_type(state) <: Real
+		state = complex(state)
+	end
+	times = -im .* times
+	reverse ? _gs_unitary_tt_corr_a_bt(h, a, b, state, gs_energy, times, stepper) : _gs_unitary_tt_corr_at_b(h, a, b, state, gs_energy, times, stepper)
+end
+
+"""
 	correlation_2op_1τ(h::QuantumOperator, a::QuantumOperator, b::QuantumOperator, state::FiniteMPS, times::Vector{<:Real}, stepper::AbstractStepper; 
 	reverse::Bool=false) 
 	for a unitary system with hamiltonian h, compute <a(τ)b> if revere=false and <a b(τ)> if reverse=true
@@ -85,6 +146,18 @@ function correlation_2op_1τ(h::Union{QuantumOperator, AbstractMPO}, a::Abstract
 	stepper::AbstractStepper=TEBDStepper(tspan=(0., 0.01), stepsize=0.01), reverse::Bool=false)
 	times = -times
 	reverse ? _unitary_tt_corr_a_bt(h, a, b, state, times, stepper) : _unitary_tt_corr_at_b(h, a, b, state, times, stepper)
+end
+
+"""
+	gs_correlation_2op_1τ(h::Union{QuantumOperator, AbstractMPO}, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real}; kwargs...)
+	ground state two imaginary time correlation
+"""
+function gs_correlation_2op_1τ(h::Union{QuantumOperator, AbstractMPO}, a::AbstractMPO, b::AbstractMPO, state::FiniteMPS, times::Vector{<:Real};
+	stepper::AbstractStepper=TEBDStepper(tspan=(0., 0.01), stepsize=0.01), 
+	gs_energy::Real = real(expectation(h, state)),
+	reverse::Bool=false)
+	times = -times
+	reverse ? _gs_unitary_tt_corr_a_bt(h, a, b, state, gs_energy, times, stepper) : _gs_unitary_tt_corr_at_b(h, a, b, state, gs_energy, times, stepper)
 end
 
 

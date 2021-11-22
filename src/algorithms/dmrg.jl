@@ -1,9 +1,16 @@
 abstract type DMRGAlgorithm end
 
+function _eig_solver(f, x, maxiter::Int, tol::Real; verbosity::Int=0)
+	eigenvalue, eigenvec, info = simple_lanczos_solver(f, x, "SR", maxiter, tol, verbosity=verbosity)
+	return eigenvalue, eigenvec
+end
+
 @with_kw struct DMRG1 <: DMRGAlgorithm 
 	D::Int = Defaults.D
 	maxiter::Int = Defaults.maxiter
 	tol::Float64 = Defaults.tol
+	eig_maxiter::Int = 10
+	eig_tol::Float64 = Defaults.dmrg_eig_tol
 	verbosity::Int = Defaults.verbosity
 end
 
@@ -27,13 +34,15 @@ function leftsweep!(m::ExpectationCache, alg::DMRG1)
 	delta = 0.
 	for site in 1:length(mps)-1
 		(alg.verbosity > 2) && println("sweeping from left to right at site: $site.")
-		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos(), 
+		# 	tol=alg.eig_tol, maxiter=alg.eig_maxiter)
+		eigvals, vecs = _eig_solver(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		# galerkin error
 		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
-		Q, R = leftorth!(vecs[1], alg=QR())
+		Q, R = leftorth!(vecs, alg=QR())
 		mps[site] = Q
 		mps[site+1] = @tensor tmp[-1 -2; -3] := R[-1, 1] * mps[site+1][1, -2, -3]
 		# hstorage[site+1] = updateleft(hstorage[site], mps[site], mpo[site], mps[site])
@@ -50,13 +59,14 @@ function rightsweep!(m::ExpectationCache, alg::DMRG1)
 	delta = 0.
 	for site in length(mps):-1:2
 		(alg.verbosity > 2) && println("sweeping from right to left at site: $site.")
-		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
 		# galerkin error
 		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be right canonical
-		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
+		L, Q = rightorth(vecs, (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
 		mps[site-1] = @tensor tmp[-1 -2; -3] := mps[site-1][-1, -2, 1] * L[1, -3]
 		# hstorage[site] = updateright(hstorage[site+1], mps[site], mpo[site], mps[site])
@@ -69,6 +79,8 @@ end
 @with_kw struct DMRG2{C<:TensorKit.TruncationScheme} <: DMRGAlgorithm
 	maxiter::Int = Defaults.maxiter
 	tol::Float64 = Defaults.tol	
+	eig_maxiter::Int = 10
+	eig_tol::Float64 = Defaults.dmrg_eig_tol
 	verbosity::Int = Defaults.verbosity
 	trunc::C = default_truncation()
 end
@@ -84,11 +96,12 @@ function leftsweep!(m::ExpectationCache, alg::DMRG2)
 	for site in 1:length(mps)-2
 		(alg.verbosity > 2) && println("sweeping from left to right at bond: $site.")
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
-		eigvals, vecs = eigsolve(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), twositemps, 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), twositemps, 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), twositemps, alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")				
 		# prepare mps site tensor to be left canonical
-		u, s, v, err = stable_tsvd!(vecs[1], trunc=trunc)
+		u, s, v, err = stable_tsvd!(vecs, trunc=trunc)
 		normalize!(s)
 		mps[site] = u
 		mps[site+1] = @tensor tmp[-1 -2; -3] := s[-1, 1] * v[1, -2, -3]
@@ -111,11 +124,12 @@ function rightsweep!(m::ExpectationCache, alg::DMRG2)
 	for site in length(mps)-1:-1:1
 		(alg.verbosity > 2) && println("sweeping from right to left at bond: $site.")
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
-		eigvals, vecs = eigsolve(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), twositemps, 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), twositemps, 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), twositemps, alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")	
 		# prepare mps site tensor to be right canonical
-		u, s, v, err = stable_tsvd!(vecs[1], trunc=trunc)	
+		u, s, v, err = stable_tsvd!(vecs, trunc=trunc)	
 		normalize!(s)
 		mps[site] = @tensor tmp[-1 -2; -3] := u[-1, -2, 1] * s[1, -3]
 		mps[site+1] = permute(v, (1,2), (3,))
@@ -134,6 +148,8 @@ end
 @with_kw  struct DMRG1S{C<:TensorKit.TruncationScheme, E<:SubspaceExpansionScheme} <: DMRGAlgorithm
 	maxiter::Int = Defaults.maxiter
 	tol::Float64 = Defaults.tol	
+	eig_maxiter::Int = 10
+	eig_tol::Float64 = Defaults.dmrg_eig_tol
 	verbosity::Int = Defaults.verbosity
 	trunc::C = default_truncation()
 	expan::E = default_expansion()
@@ -152,13 +168,14 @@ function leftsweep!(m::ExpectationCache, alg::DMRG1S)
 		right_expansion!(m, site, alg.expan, trunc)
 		# end of subspace expansion
 
-		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		# galerkin error
 		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
-		Q, R = leftorth!(vecs[1], alg=QR())
+		Q, R = leftorth!(vecs, alg=QR())
 		mps[site] = Q
 		mps[site+1] = @tensor tmp[-1 -2; -3] := R[-1, 1] * mps[site+1][1, -2, -3]
 		# hstorage[site+1] = updateleft(hstorage[site], mps[site], mpo[site], mps[site])
@@ -181,13 +198,14 @@ function rightsweep!(m::ExpectationCache, alg::DMRG1S)
 		left_expansion!(m, site, alg.expan, trunc)
 		# end of subspace expansion
 
-		eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), mps[site], alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
 		# galerkin error
 		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be right canonical
-		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
+		L, Q = rightorth(vecs, (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
 		mps[site-1] = @tensor tmp[-1 -2; -3] := mps[site-1][-1, -2, 1] * L[1, -3]
 		# hstorage[site] = updateright(hstorage[site+1], mps[site], mpo[site], mps[site])

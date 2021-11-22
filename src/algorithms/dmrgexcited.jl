@@ -22,12 +22,13 @@ function leftsweep!(m::ProjectedExpectationCache, alg::DMRG1)
 		(alg.verbosity > 2) && println("sweeping from left to right at site: $site.")
 		p1 = [c_proj(projectors[l][site], cstorages[l][site], cstorages[l][site+1]) for l in 1:length(cstorages)]
 		sitemps = _project!(copy(mps[site]), p1)
-		eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
-		Q, R = leftorth!(vecs[1], alg=QR())
+		Q, R = leftorth!(vecs, alg=QR())
 		mps[site] = Q
 		mps[site+1] = @tensor tmp[-1 -2; -3] := R[-1, 1] * mps[site+1][1, -2, -3]
 		# hstorage[site+1] = updateleft(hstorage[site], mps[site], mpo[site], mps[site])
@@ -51,12 +52,13 @@ function rightsweep!(m::ProjectedExpectationCache, alg::DMRG1)
 		(alg.verbosity > 2) && println("sweeping from right to left at site: $site.")
 		p1 = [c_proj(projectors[l][site], cstorages[l][site], cstorages[l][site+1]) for l in 1:length(cstorages)]
 		sitemps = _project!(copy(mps[site]), p1)
-		eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")		
 		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be right canonical
-		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
+		L, Q = rightorth(vecs, (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
 		mps[site-1] = @tensor tmp[-1 -2; -3] := mps[site-1][-1, -2, 1] * L[1, -3]
 		# hstorage[site] = updateright(hstorage[site+1], mps[site], mpo[site], mps[site])
@@ -86,11 +88,12 @@ function leftsweep!(m::ProjectedExpectationCache, alg::DMRG2)
 		(alg.verbosity > 2) && println("sweeping from left to right at bond: $site.")
 		p2 = [_c2_prime_2(projectors[l][site], projectors[l][site+1], cstorages[l][site], cstorages[l][site+2]) for l in 1:length(cstorages)]
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
-		eigvals, vecs = eigsolve(x->_project!(ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), p2), _project!(twositemps, p2), 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->_project!(ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), p2), _project!(twositemps, p2), 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->_project!(ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), p2), _project!(twositemps, p2), alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")				
 		# prepare mps site tensor to be left canonical
-		u, s, v, err = stable_tsvd!(vecs[1], trunc=trunc)
+		u, s, v, err = stable_tsvd!(vecs, trunc=trunc)
 		normalize!(s)
 		mps[site] = u
 		mps[site+1] = @tensor tmp[-1 -2; -3] := s[-1, 1] * v[1, -2, -3]
@@ -120,11 +123,12 @@ function rightsweep!(m::ProjectedExpectationCache, alg::DMRG2)
 		(alg.verbosity > 2) && println("sweeping from right to left at bond: $site.")
 		p2 = [_c2_prime_2(projectors[l][site], projectors[l][site+1], cstorages[l][site], cstorages[l][site+2]) for l in 1:length(cstorages)]
 		@tensor twositemps[-1 -2; -3 -4] := mps[site][-1, -2, 1] * mps[site+1][1, -3, -4]
-		eigvals, vecs = eigsolve(x->_project!(ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), p2), _project!(twositemps, p2), 1, :SR, Lanczos())
-		push!(Energies, eigvals[1])
+		# eigvals, vecs = eigsolve(x->_project!(ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), p2), _project!(twositemps, p2), 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->_project!(ac2_prime(x, mpo[site], mpo[site+1], hstorage[site], hstorage[site+2]), p2), _project!(twositemps, p2), alg.eig_maxiter, alg.eig_tol)
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on bond $site is $(Energies[end]).")	
 		# prepare mps site tensor to be right canonical
-		u, s, v, err = stable_tsvd!(vecs[1], trunc=trunc)	
+		u, s, v, err = stable_tsvd!(vecs, trunc=trunc)	
 		normalize!(s)
 		mps[site] = @tensor tmp[-1 -2; -3] := u[-1, -2, 1] * s[1, -3]
 		mps[site+1] = permute(v, (1,2), (3,))
@@ -158,13 +162,14 @@ function leftsweep!(m::ProjectedExpectationCache, alg::DMRG1S)
 		p1 = [c_proj(projectors[l][site], cstorages[l][site], cstorages[l][site+1]) for l in 1:length(cstorages)]
 		sitemps = _project!(copy(mps[site]), p1)
 
-		eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
+		# eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, alg.eig_maxiter, alg.eig_tol)
 
-		push!(Energies, eigvals[1])
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")
 		delta = max(delta, calc_galerkin(m, site) )
 		# prepare mps site tensor to be left canonical
-		Q, R = leftorth!(vecs[1], alg=QR())
+		Q, R = leftorth!(vecs, alg=QR())
 		mps[site] = Q
 		mps[site+1] = @tensor tmp[-1 -2; -3] := R[-1, 1] * mps[site+1][1, -2, -3]
 		# hstorage[site+1] = updateleft(hstorage[site], mps[site], mpo[site], mps[site])
@@ -191,13 +196,14 @@ function rightsweep!(m::ProjectedExpectationCache, alg::DMRG1S)
 		p1 = [c_proj(projectors[l][site], cstorages[l][site], cstorages[l][site+1]) for l in 1:length(cstorages)]
 		sitemps = _project!(copy(mps[site]), p1)
 
-		eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
+		# eigvals, vecs = eigsolve(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, 1, :SR, Lanczos())
+		eigvals, vecs = _eig_solver(x->_project!(ac_prime(x, mpo[site], hstorage[site], hstorage[site+1]), p1), sitemps, alg.eig_maxiter, alg.eig_tol)
 		
-		push!(Energies, eigvals[1])
+		push!(Energies, eigvals)
 		(alg.verbosity > 2) && println("Energy after optimization on site $site is $(Energies[end]).")	
 		delta = max(delta, calc_galerkin(m, site) )	
 		# prepare mps site tensor to be right canonical
-		L, Q = rightorth(vecs[1], (1,), (2,3), alg=LQ())
+		L, Q = rightorth(vecs, (1,), (2,3), alg=LQ())
 		mps[site] = permute(Q, (1,2), (3,))
 		mps[site-1] = @tensor tmp[-1 -2; -3] := mps[site-1][-1, -2, 1] * L[1, -3]
 		# hstorage[site] = updateright(hstorage[site+1], mps[site], mpo[site], mps[site])

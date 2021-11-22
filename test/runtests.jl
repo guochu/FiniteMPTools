@@ -1005,12 +1005,66 @@ function check_sym_twotime_corr(L)
 	return maximum(Errs) 
 end
 
+function compute_gs(mpo, state)
+	state_2 = copy(state)
+	energies, delta = ground_state!(state_2, mpo, DMRG2(trunc=MPSTruncation(D=20, ϵ=1.0e-8, verbosity=0)))
+	return energies[end], state_2
+end
+
+function check_gs_sym_twotime_corr(L)
+	J1 = 1.
+	J2 = 0.5
+	U = 1.2
+	p = FiniteMPTools.spinal_fermion_site_ops_u1_su2()
+
+	h, sp_op, sm_op = corr_hubbard_ladder(L, J1, J2, U, p)
+
+	state = corr_initial_state(L)
+
+	canonicalize!(state, normalize=true)
+
+	gs_energy, state = compute_gs(FiniteMPO(h), state)
+
+	ts = [0., 0.02, 0.1]
+	stepsize = 0.01
+
+
+	function nsym_corr_t(reverse::Bool)
+		corr = gs_correlation_2op_1t(h, sp_op, sm_op, copy(state), ts, gs_energy=gs_energy, stepper=TEBDStepper(stepsize=stepsize), reverse=reverse)
+		return corr
+	end
+
+	function exact_nsym_corr_t(reverse::Bool)
+		corr = exact_correlation_2op_1t(h, sp_op, sm_op, copy(state), ts, reverse=reverse)
+		return corr
+	end
+
+	function nsym_corr_τ(reverse::Bool)
+		corr = gs_correlation_2op_1τ(h, sp_op, sm_op, copy(state), ts, gs_energy=gs_energy, stepper=TEBDStepper(stepsize=stepsize), reverse=reverse)
+		return corr
+	end
+
+	function exact_nsym_corr_τ(reverse::Bool)
+		corr = exact_correlation_2op_1τ(h, sp_op, sm_op, copy(state), ts, reverse=reverse)
+		return corr
+	end
+
+	Errs = Float64[]
+	for m in [true, false]
+		push!(Errs, maximum(abs.(nsym_corr_t(m) - exact_nsym_corr_t(m))))
+		push!(Errs, maximum(abs.(nsym_corr_τ(m) - exact_nsym_corr_τ(m))))
+	end
+
+	return maximum(Errs)
+end
+
 @testset "non-symmetric two-time correlation" begin
 	@test check_twotime_corr() < 1.0e-4
 end
 
 @testset "symmetric two-time correlation" begin
 	@test check_sym_twotime_corr(4) < 1.0e-4
+	@test check_gs_sym_twotime_corr(4) < 1.0e-4
 end
 
 
