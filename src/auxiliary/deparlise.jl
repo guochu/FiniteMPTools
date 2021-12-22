@@ -1,5 +1,5 @@
 
-const DeparalleliseTol = 1.0e-12
+const DeparalleliseTol = 1.0e-11
 
 function _istwocolumnparallel(cola, colb, tol::Real)
     (length(cola) != length(colb)) && throw(DimensionMismatch())

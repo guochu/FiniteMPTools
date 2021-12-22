@@ -9,7 +9,7 @@ end
 prodmpo(physpaces::Vector{<: EuclideanSpace}, m::AdjointQTerm) = adjoint(prodmpo(physpaces, m.parent))
 
 
-function FiniteMPO(h::QuantumOperator{S}; alg::MPOCompression=Deparallelise()) where {S <: EuclideanSpace}
+function FiniteMPO(h::QuantumOperator{S}; alg::MPOCompression=default_mpo_compression()) where {S <: EuclideanSpace}
 	physpaces = convert(Vector{S}, space(h))
 	local mpo
 	compress_threshold = 20

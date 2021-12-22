@@ -34,8 +34,18 @@ end
 	verbosity::Int = Defaults.verbosity
 end
 
+@with_kw struct CombineCompression <: MPOCompression
+	tol::Float64 = DeparalleliseTol
+	verbosity::Int = Defaults.verbosity	
+end
+
 
 _compress!(h::FiniteMPO, alg::Deparallelise) = deparallelise!(h, tol=alg.tol, verbosity=alg.verbosity)
 _compress!(h::FiniteMPO, alg::SVDCompression) = svdcompress!(h, tol=alg.tol, verbosity=alg.verbosity)
-compress!(h::FiniteMPO, alg::MPOCompression=Deparallelise()) = _compress!(h, alg)
+function _compress!(h::FiniteMPO, alg::CombineCompression)
+	_compress!(h, Deparallelise(tol=alg.tol, verbosity=alg.verbosity))
+	return _compress!(h, SVDCompression(tol=alg.tol, verbosity=alg.verbosity))
+end
+default_mpo_compression() = CombineCompression()
+compress!(h::FiniteMPO, alg::MPOCompression=default_mpo_compression()) = _compress!(h, alg)
 
