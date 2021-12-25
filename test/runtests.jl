@@ -265,6 +265,8 @@ function test_power_law_ham_f(L)
 	return distance(mpo1, mpo2)
 end
 
+
+
 println("-----------test mpo hamiltonain-----------------")
 @testset "long range mpo hamiltonian" begin
 	for L in [5, 6]
@@ -342,6 +344,71 @@ function initial_state_dense(L)
 	end
 	return prodmps(ComplexF64, [4 for i in 1:L], init_state)
 end 
+
+
+function hund_ham(L, U, J, U1, U2, p)
+	adag, pp, pm, nn, JW = p["+"], p["++"], p["+-"], p["n↑n↓"], p["JW"]
+
+	adagJW = adag * JW
+	a = adag'
+
+	terms = []
+	for i in 1:L
+		push!(terms, QTerm(i => nn, coeff=U))
+	end
+	for i in 1:L-1
+		m = QTerm(i=>adagJW, i+1=>a, coeff=-J)
+		push!(terms, m)
+		push!(terms, m')
+		# m = QTerm(i=>pp, i+1=>pp', coeff=-U1)
+		# push!(terms, m)
+		# push!(terms, m')		
+		m = QTerm(i=>pm, i+1=>pm', coeff=-U2)
+		push!(terms, m)
+		push!(terms, m')				
+	end
+	return QuantumOperator([terms...])
+end
+
+function evolve_and_measure(ham, state)
+	tspan = (0., -im*0.5)
+	stepper = TEBDStepper(stepsize=0.05, order=4, tspan=tspan)
+	state_out, cache = timeevo!(copy(state), ham, stepper)
+	# println("norm of output state is $(norm(state_out))")
+	return dot(state_out, state)
+end
+
+function hund_evolve(L)
+	J = 1.
+	U = 1.2
+	U1 = 1.3
+	U2 = -1.4
+
+	p = FiniteMPTools.spinal_fermion_site_ops_u1_su2()
+	ham = hund_ham(L, U, J, U1, U2, p)
+	state = initial_state_u1_su2(L)[1]
+	v1 = evolve_and_measure(ham, state)
+
+
+	p = FiniteMPTools.spinal_fermion_site_ops_u1_u1()
+	ham = hund_ham(L, U, J, U1, U2, p)
+	state = initial_state_u1_u1(L)[1]
+	v2 = evolve_and_measure(ham, state)
+
+	p = FiniteMPTools.spinal_fermion_site_ops_dense()
+	ham = hund_ham(L, U, J, U1, U2, p)
+	state = initial_state_dense(L)
+	v3 = evolve_and_measure(ham, state)
+
+	return max(abs(v1-v2), abs(v1-v3))
+end
+println("-----------test site operators------------")
+@testset "spinic fermion site operator " begin
+	for L in [3,4,5]
+		@test hund_evolve(L) < 1.0e-6
+	end
+end
+
 
 function do_dmrg(dmrg, alg)
 	dmrg_sweeps = 5
